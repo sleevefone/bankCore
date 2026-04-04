@@ -3,6 +3,7 @@ package com.payhub.bankcore.infrastructure.persistence;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.payhub.bankcore.infrastructure.persistence.dataobject.CoreAccountDO;
 import com.payhub.bankcore.infrastructure.persistence.dataobject.CoreTransactionDO;
 import com.payhub.bankcore.infrastructure.persistence.mapper.CoreAccountMapper;
@@ -25,7 +26,10 @@ class TimeTypePersistenceTest {
 
     @Test
     void shouldReadLocalDateFromAccount() {
-        CoreAccountDO account = coreAccountMapper.selectById("ACC-DR-1001");
+        CoreAccountDO account = coreAccountMapper.selectOne(
+                new LambdaQueryWrapper<CoreAccountDO>().eq(CoreAccountDO::getAccountNo, "ACC-DR-1001"),
+                false
+        );
 
         assertNotNull(account);
         assertEquals(LocalDate.of(2026, 4, 3), account.getLastAccrualDate());
@@ -58,7 +62,10 @@ class TimeTypePersistenceTest {
 
         coreTransactionMapper.insert(transaction);
 
-        CoreTransactionDO loaded = coreTransactionMapper.selectById("CTX-TIME-1001");
+        CoreTransactionDO loaded = coreTransactionMapper.selectOne(
+                new LambdaQueryWrapper<CoreTransactionDO>().eq(CoreTransactionDO::getCoreTxnId, "CTX-TIME-1001"),
+                false
+        );
         assertNotNull(loaded);
         assertEquals(occurredAt, loaded.getOccurredAt());
         assertEquals(createdAt, loaded.getCreatedAt());

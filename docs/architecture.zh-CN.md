@@ -417,14 +417,31 @@
 
 第一版建议先建这几张表。
 
+统一主键规范：
+
+- 所有表都必须包含 `id` 作为数据库自增逻辑主键
+- 所有业务标识都必须与逻辑主键分离，不能直接拿业务号充当表主键
+- 业务主键、业务唯一键、外部关联键需要按业务语义单独设计
+- `account_no`、`subject_code`、`core_txn_id`、`biz_order_id`、`request_id`、`idempotency_key` 都属于业务标识，不属于表逻辑主键
+- 支付订单表如 `pay_order` 也统一遵循该规范，即 `id` 为逻辑主键，`order_id` 或 `biz_order_id` 为业务主键
+
 ## 9.1 `core_account`
 
 用途：
 
 - 存账户主数据与实时余额
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `account_no` 为账户业务主键
+- `account_seq_no` 为账户序号业务标识
+- `uk_core_account_account_no`
+- `uk_core_account_account_seq_no`
+
 建议字段：
 
+- `id`
 - `account_no`
 - `account_seq_no`
 - `customer_no`
@@ -447,8 +464,15 @@
 
 - 存科目主数据与会计方向定义
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `subject_code` 为科目业务主键
+- `uk_core_subject_subject_code`
+
 建议字段：
 
+- `id`
 - `subject_code`
 - `subject_name`
 - `subject_level`
@@ -465,8 +489,17 @@
 
 - 存交易主单
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `core_txn_id` 为核心交易业务主键
+- `request_id` 为幂等业务键
+- `biz_order_id` 为支付侧业务订单号
+- 逻辑主键、自身业务主键、外部业务键必须分离
+
 建议字段：
 
+- `id`
 - `core_txn_id`
 - `request_id`
 - `biz_order_id`
@@ -484,6 +517,7 @@
 
 关键约束建议：
 
+- `uk_core_txn_core_txn_id`
 - `uk_core_txn_request_id`
 - `idx_core_txn_biz_order_id`
 - `idx_core_txn_status`
@@ -494,10 +528,17 @@
 
 - 存账务分录
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `core_txn_id + entry_no` 为分录业务唯一键
+- 分录流水号不能替代逻辑主键
+
 建议字段：
 
 - `id`
 - `core_txn_id`
+- `entry_no`
 - `account_no`
 - `account_seq_no`
 - `customer_no`
@@ -516,6 +557,13 @@
 用途：
 
 - 存账户利息详情
+
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- 账户标识与利息维度字段承担业务识别职责
+- 如果一户一条利息汇总，可增加 `uk_account_no`
+- 如果一户多条分期明细，应按业务日或利息期间增加唯一键
 
 建议字段：
 
@@ -538,6 +586,12 @@
 
 - 存每日或周期计提明细
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `account_no + account_seq_no + business_date + accrual_type` 可作为计提业务唯一键候选
+- 计提业务唯一键与逻辑主键必须分离
+
 建议字段：
 
 - `id`
@@ -558,8 +612,16 @@
 
 - 存幂等记录
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `idempotency_key` 为幂等业务主键
+- `request_id` 与 `biz_order_id + txn_type` 为辅助防重键
+- 幂等业务键不能替代表逻辑主键
+
 建议字段：
 
+- `id`
 - `idempotency_key`
 - `request_id`
 - `biz_order_id`
@@ -575,16 +637,53 @@
 
 - 存交易状态变化轨迹
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `core_txn_id + from_status + to_status + created_at` 为历史识别组合
+
+建议字段：
+
+- `id`
+- `core_txn_id`
+- `from_status`
+- `to_status`
+- `reason_code`
+- `reason_message`
+- `operator_id`
+- `created_at`
+
 ## 9.9 `core_audit_log`
 
 用途：
 
 - 存面向架构审计的统一操作日志
 
+主键与唯一键建议：
+
+- `id` 为逻辑主键
+- `entity_type + entity_id + operation_type + created_at` 为审计识别组合
+
+建议字段：
+
+- `id`
+- `entity_type`
+- `entity_id`
+- `operation_type`
+- `operator_id`
+- `trace_id`
+- `before_snapshot`
+- `after_snapshot`
+- `created_at`
+
 # 10. 架构审计要求
 
 如果这个系统要通过账务和合规视角的架构审计，第一版就应明确以下约束：
 
+- 所有业务表都必须有自增逻辑主键 `id`
+- 所有业务主键都必须与逻辑主键分离，禁止把业务号直接设计成表主键
+- 所有表统一遵循“逻辑主键 + 业务主键/业务唯一键”的双层标识模型
+- `pay_order`、`core_transaction`、`core_account`、`core_subject`、`core_idempotency_record` 等表都必须统一执行这条规范
 - 每笔分录都必须能追溯到账号、账号序号、客户号、科目和借贷方向
 - 每次余额变化都必须能从交易主单和分录重建
 - 利息与计提必须可追溯到利率、基数、业务日和会计科目
