@@ -11,9 +11,11 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.TestPropertySource;
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@TestPropertySource(properties = "spring.sql.init.mode=always")
 class CoreTransactionControllerTest {
 
     @Autowired
@@ -47,7 +49,9 @@ class CoreTransactionControllerTest {
                 .andExpect(jsonPath("$.customerNo").value("CUST-1001"))
                 .andExpect(jsonPath("$.debitAccountSeqNo").value(10001))
                 .andExpect(jsonPath("$.creditSubjectCode").value("200101"))
-                .andExpect(jsonPath("$.status").value("INIT"));
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.rawCode").value("POSTED"));
     }
 
     @Test
@@ -66,7 +70,7 @@ class CoreTransactionControllerTest {
                                   "debitAccountNo": "ACC-DR-2001",
                                   "debitAccountSeqNo": 30001,
                                   "debitSubjectCode": "100301",
-                                  "creditAccountNo": "ACC-CR-2001",
+                                  "creditAccountNo": "ACC-CR-3001",
                                   "creditAccountSeqNo": 30002,
                                   "creditSubjectCode": "200301",
                                   "occurredAt": "2026-04-04T13:05:00"
@@ -78,5 +82,40 @@ class CoreTransactionControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.bizOrderId").value("BIZ-2001"))
                 .andExpect(jsonPath("$.rawCode").value("FOUND"));
+    }
+
+    @Test
+    void shouldReturnSameTransactionOnIdempotentRequest() throws Exception {
+        String payload = """
+                {
+                  "requestId": "REQ-3001",
+                  "bizOrderId": "BIZ-3001",
+                  "bizType": "PAYMENT",
+                  "txnType": "PAY_IN",
+                  "customerNo": "CUST-1001",
+                  "amount": 10.00,
+                  "currency": "CNY",
+                  "debitAccountNo": "ACC-DR-1001",
+                  "debitAccountSeqNo": 10001,
+                  "debitSubjectCode": "100201",
+                  "creditAccountNo": "ACC-CR-2001",
+                  "creditAccountSeqNo": 20001,
+                  "creditSubjectCode": "200101",
+                  "occurredAt": "2026-04-04T13:10:00"
+                }
+                """;
+
+        mockMvc.perform(post("/core/transactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rawCode").value("POSTED"));
+
+        mockMvc.perform(post("/core/transactions")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(payload))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.rawCode").value("IDEMPOTENT_HIT"))
+                .andExpect(jsonPath("$.success").value(true));
     }
 }

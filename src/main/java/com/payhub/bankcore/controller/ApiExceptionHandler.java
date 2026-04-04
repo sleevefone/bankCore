@@ -3,6 +3,7 @@ package com.payhub.bankcore.controller;
 import java.util.HashMap;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -28,11 +29,10 @@ public class ApiExceptionHandler {
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    @ResponseStatus
-    public Map<String, Object> handleStatus(ResponseStatusException ex) {
-        return Map.of(
+    public ResponseEntity<Map<String, Object>> handleStatus(ResponseStatusException ex) {
+        return ResponseEntity.status(ex.getStatusCode()).body(Map.of(
                 "code", ex.getStatusCode().toString(),
                 "message", ex.getReason()
-        );
+        ));
     }
 }
