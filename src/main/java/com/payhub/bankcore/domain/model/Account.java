@@ -5,20 +5,27 @@ import com.payhub.bankcore.domain.enums.AccountType;
 import com.payhub.bankcore.domain.enums.BalanceDirection;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-public record Account(
-        String accountNo,
-        Long accountSeqNo,
-        String customerNo,
-        AccountType accountType,
-        String subjectCode,
-        BalanceDirection normalBalanceDirection,
-        String ownerId,
-        String currency,
-        BigDecimal availableBalance,
-        BigDecimal frozenBalance,
-        BigDecimal interestRate,
-        LocalDate lastAccrualDate,
-        AccountStatus status
-) {
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class Account {
+    private String accountNo;
+    private Long accountSeqNo;
+    private String customerNo;
+    private AccountType accountType;
+    private String subjectCode;
+    private BalanceDirection normalBalanceDirection;
+    private String ownerId;
+    private String currency;
+    private BigDecimal availableBalance;
+    private BigDecimal frozenBalance;
+    private BigDecimal interestRate;
+    private LocalDate lastAccrualDate;
+    private AccountStatus status;
 }

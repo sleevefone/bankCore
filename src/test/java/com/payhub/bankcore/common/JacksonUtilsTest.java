@@ -11,6 +11,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
 class JacksonUtilsTest {
@@ -60,8 +63,8 @@ class JacksonUtilsTest {
         });
 
         assertEquals(2, payloads.size());
-        assertEquals("ORD-2", payloads.get(1).orderId());
-        assertEquals(List.of("B", "C"), payloads.get(1).tags());
+        assertEquals("ORD-2", payloads.get(1).getOrderId());
+        assertEquals(List.of("B", "C"), payloads.get(1).getTags());
     }
 
     @Test
@@ -82,8 +85,8 @@ class JacksonUtilsTest {
 
         SamplePayload payload = JacksonUtils.fromJson(json, SamplePayload.class);
 
-        assertEquals("ORD-3001", payload.orderId());
-        assertFalse(payload.tags().isEmpty());
+        assertEquals("ORD-3001", payload.getOrderId());
+        assertFalse(payload.getTags().isEmpty());
     }
 
     @Test
@@ -96,11 +99,13 @@ class JacksonUtilsTest {
         assertTrue(exception.getMessage().contains("Failed to deserialize JSON"));
     }
 
-    record SamplePayload(
-            String orderId,
-            BigDecimal amount,
-            LocalDateTime createdAt,
-            List<String> tags
-    ) {
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    static class SamplePayload {
+        private String orderId;
+        private BigDecimal amount;
+        private LocalDateTime createdAt;
+        private List<String> tags;
     }
 }

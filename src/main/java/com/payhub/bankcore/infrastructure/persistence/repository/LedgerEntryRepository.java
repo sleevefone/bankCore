@@ -20,18 +20,18 @@ public class LedgerEntryRepository {
         LocalDateTime now = LocalDateTime.now();
         for (LedgerEntry entry : entries) {
             CoreLedgerEntryDO dataObject = new CoreLedgerEntryDO();
-            dataObject.setCoreTxnId(entry.coreTxnId());
-            dataObject.setEntryNo(entry.entryNo());
-            dataObject.setAccountNo(entry.accountNo());
-            dataObject.setAccountSeqNo(entry.accountSeqNo());
-            dataObject.setCustomerNo(entry.customerNo());
-            dataObject.setSubjectCode(entry.subjectCode());
-            dataObject.setEntryDirection(entry.entryDirection().name());
-            dataObject.setDcDirection(entry.dcDirection().name());
-            dataObject.setAmount(entry.amount());
-            dataObject.setCurrency(entry.currency());
-            dataObject.setBalanceBefore(entry.balanceBefore());
-            dataObject.setBalanceAfter(entry.balanceAfter());
+            dataObject.setCoreTxnId(entry.getCoreTxnId());
+            dataObject.setEntryNo(entry.getEntryNo());
+            dataObject.setAccountNo(entry.getAccountNo());
+            dataObject.setAccountSeqNo(entry.getAccountSeqNo());
+            dataObject.setCustomerNo(entry.getCustomerNo());
+            dataObject.setSubjectCode(entry.getSubjectCode());
+            dataObject.setEntryDirection(entry.getEntryDirection().name());
+            dataObject.setDcDirection(entry.getDcDirection().name());
+            dataObject.setAmount(entry.getAmount());
+            dataObject.setCurrency(entry.getCurrency());
+            dataObject.setBalanceBefore(entry.getBalanceBefore());
+            dataObject.setBalanceAfter(entry.getBalanceAfter());
             dataObject.setCreatedAt(now);
             coreLedgerEntryMapper.insert(dataObject);
         }

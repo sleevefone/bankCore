@@ -2,6 +2,7 @@ package com.payhub.bankcore.application.service;
 
 import com.payhub.bankcore.application.dto.CoreTransactionResponse;
 import com.payhub.bankcore.application.dto.CreateCoreTransactionRequest;
+import com.payhub.bankcore.common.JacksonUtils;
 import com.payhub.bankcore.domain.enums.AccountStatus;
 import com.payhub.bankcore.domain.enums.BalanceDirection;
 import com.payhub.bankcore.domain.enums.CoreTransactionStatus;
@@ -18,6 +19,7 @@ import com.payhub.bankcore.infrastructure.persistence.repository.LedgerEntryRepo
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -47,91 +49,91 @@ public class CoreTransactionApplicationService {
 
     @Transactional
     public CoreTransactionResponse create(CreateCoreTransactionRequest request) {
-        CoreTransaction existing = coreTransactionRepository.findByRequestId(request.requestId()).orElse(null);
+        CoreTransaction existing = coreTransactionRepository.findByRequestId(request.getRequestId()).orElse(null);
         if (existing != null) {
             return toResponse(existing, false, false, "IDEMPOTENT_HIT", "Request already accepted");
         }
 
         Account debitAccount = validateAccount(
-                request.debitAccountNo(),
-                request.debitAccountSeqNo(),
-                request.customerNo(),
-                request.debitSubjectCode()
+                request.getDebitAccountNo(),
+                request.getDebitAccountSeqNo(),
+                request.getCustomerNo(),
+                request.getDebitSubjectCode()
         );
         Account creditAccount = validateAccount(
-                request.creditAccountNo(),
-                request.creditAccountSeqNo(),
-                request.customerNo(),
-                request.creditSubjectCode()
+                request.getCreditAccountNo(),
+                request.getCreditAccountSeqNo(),
+                request.getCustomerNo(),
+                request.getCreditSubjectCode()
         );
 
-        BigDecimal debitBalanceAfter = applyPosting(debitAccount.availableBalance(), request.amount(), debitAccount.normalBalanceDirection(), DcDirection.DEBIT);
-        BigDecimal creditBalanceAfter = applyPosting(creditAccount.availableBalance(), request.amount(), creditAccount.normalBalanceDirection(), DcDirection.CREDIT);
+        BigDecimal debitBalanceAfter = applyPosting(debitAccount.getAvailableBalance(), request.getAmount(), debitAccount.getNormalBalanceDirection(), DcDirection.DEBIT);
+        BigDecimal creditBalanceAfter = applyPosting(creditAccount.getAvailableBalance(), request.getAmount(), creditAccount.getNormalBalanceDirection(), DcDirection.CREDIT);
 
         LocalDateTime now = LocalDateTime.now();
         CoreTransaction transaction = new CoreTransaction(
                 "CTX-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20),
-                request.requestId(),
-                request.bizOrderId(),
-                request.bizType(),
-                request.txnType(),
-                request.customerNo(),
-                request.amount(),
-                request.currency(),
-                request.debitAccountNo(),
-                request.debitAccountSeqNo(),
-                request.debitSubjectCode(),
-                request.creditAccountNo(),
-                request.creditAccountSeqNo(),
-                request.creditSubjectCode(),
+                request.getRequestId(),
+                request.getBizOrderId(),
+                request.getBizType(),
+                request.getTxnType(),
+                request.getCustomerNo(),
+                request.getAmount(),
+                request.getCurrency(),
+                request.getDebitAccountNo(),
+                request.getDebitAccountSeqNo(),
+                request.getDebitSubjectCode(),
+                request.getCreditAccountNo(),
+                request.getCreditAccountSeqNo(),
+                request.getCreditSubjectCode(),
                 CoreTransactionStatus.SUCCESS,
                 null,
                 null,
-                request.occurredAt(),
+                request.getOccurredAt(),
                 now
         );
 
         coreTransactionRepository.save(transaction);
         ledgerEntryRepository.saveAll(List.of(
                 new LedgerEntry(
-                        transaction.coreTxnId(),
+                        transaction.getCoreTxnId(),
                         1,
-                        debitAccount.accountNo(),
-                        debitAccount.accountSeqNo(),
-                        debitAccount.customerNo(),
-                        debitAccount.subjectCode(),
+                        debitAccount.getAccountNo(),
+                        debitAccount.getAccountSeqNo(),
+                        debitAccount.getCustomerNo(),
+                        debitAccount.getSubjectCode(),
                         EntryDirection.PRINCIPAL,
                         DcDirection.DEBIT,
-                        request.amount(),
-                        request.currency(),
-                        debitAccount.availableBalance(),
+                        request.getAmount(),
+                        request.getCurrency(),
+                        debitAccount.getAvailableBalance(),
                         debitBalanceAfter
                 ),
                 new LedgerEntry(
-                        transaction.coreTxnId(),
+                        transaction.getCoreTxnId(),
                         2,
-                        creditAccount.accountNo(),
-                        creditAccount.accountSeqNo(),
-                        creditAccount.customerNo(),
-                        creditAccount.subjectCode(),
+                        creditAccount.getAccountNo(),
+                        creditAccount.getAccountSeqNo(),
+                        creditAccount.getCustomerNo(),
+                        creditAccount.getSubjectCode(),
                         EntryDirection.PRINCIPAL,
                         DcDirection.CREDIT,
-                        request.amount(),
-                        request.currency(),
-                        creditAccount.availableBalance(),
+                        request.getAmount(),
+                        request.getCurrency(),
+                        creditAccount.getAvailableBalance(),
                         creditBalanceAfter
                 )
         ));
-        accountRepository.updateAvailableBalance(debitAccount.accountNo(), debitBalanceAfter);
-        accountRepository.updateAvailableBalance(creditAccount.accountNo(), creditBalanceAfter);
+        accountRepository.updateAvailableBalance(debitAccount.getAccountNo(), debitBalanceAfter);
+        accountRepository.updateAvailableBalance(creditAccount.getAccountNo(), creditBalanceAfter);
         auditLogRepository.save(new AuditLog(
                 "CORE_TRANSACTION",
-                transaction.coreTxnId(),
+                transaction.getCoreTxnId(),
                 "CREATE",
                 "system",
-                request.requestId(),
-                null,
-                "requestId=" + request.requestId() + ",bizOrderId=" + request.bizOrderId() + ",amount=" + request.amount(),
+                request.getRequestId(),
+                JacksonUtils.toJson(buildBeforeSnapshot(request)),
+                JacksonUtils.toJson(buildAfterSnapshot(transaction, debitBalanceAfter, creditBalanceAfter)),
                 now
         ));
         return toResponse(transaction, false, true, "POSTED", "Transaction posted successfully");
@@ -142,7 +144,7 @@ public class CoreTransactionApplicationService {
         if (transaction == null) {
             return null;
         }
-        return toResponse(transaction, transaction.status() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
+        return toResponse(transaction, transaction.getStatus() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
     }
 
     public CoreTransactionResponse getByRequestId(String requestId) {
@@ -150,7 +152,7 @@ public class CoreTransactionApplicationService {
         if (transaction == null) {
             return null;
         }
-        return toResponse(transaction, transaction.status() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
+        return toResponse(transaction, transaction.getStatus() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
     }
 
     private CoreTransactionResponse toResponse(
@@ -161,27 +163,27 @@ public class CoreTransactionApplicationService {
             String rawMessage
     ) {
         return new CoreTransactionResponse(
-                transaction.coreTxnId(),
-                transaction.requestId(),
-                transaction.bizOrderId(),
-                transaction.bizType(),
-                transaction.txnType(),
-                transaction.customerNo(),
-                transaction.amount(),
-                transaction.currency(),
-                transaction.debitAccountNo(),
-                transaction.debitAccountSeqNo(),
-                transaction.debitSubjectCode(),
-                transaction.creditAccountNo(),
-                transaction.creditAccountSeqNo(),
-                transaction.creditSubjectCode(),
-                transaction.status(),
-                transaction.status() == CoreTransactionStatus.SUCCESS,
+                transaction.getCoreTxnId(),
+                transaction.getRequestId(),
+                transaction.getBizOrderId(),
+                transaction.getBizType(),
+                transaction.getTxnType(),
+                transaction.getCustomerNo(),
+                transaction.getAmount(),
+                transaction.getCurrency(),
+                transaction.getDebitAccountNo(),
+                transaction.getDebitAccountSeqNo(),
+                transaction.getDebitSubjectCode(),
+                transaction.getCreditAccountNo(),
+                transaction.getCreditAccountSeqNo(),
+                transaction.getCreditSubjectCode(),
+                transaction.getStatus(),
+                transaction.getStatus() == CoreTransactionStatus.SUCCESS,
                 retryable,
                 rawCode,
                 rawMessage,
-                transaction.occurredAt(),
-                transaction.createdAt()
+                transaction.getOccurredAt(),
+                transaction.getCreatedAt()
         );
     }
 
@@ -193,16 +195,16 @@ public class CoreTransactionApplicationService {
     ) {
         Account account = accountRepository.findByAccountNo(accountNo)
                 .orElseThrow(() -> new ResponseStatusException(BAD_REQUEST, "Account not found: " + accountNo));
-        if (account.status() != AccountStatus.ACTIVE) {
+        if (account.getStatus() != AccountStatus.ACTIVE) {
             throw new ResponseStatusException(BAD_REQUEST, "Account is not active: " + accountNo);
         }
-        if (!Objects.equals(account.accountSeqNo(), accountSeqNo)) {
+        if (!Objects.equals(account.getAccountSeqNo(), accountSeqNo)) {
             throw new ResponseStatusException(BAD_REQUEST, "Account sequence mismatch: " + accountNo);
         }
-        if (!Objects.equals(account.customerNo(), customerNo)) {
+        if (!Objects.equals(account.getCustomerNo(), customerNo)) {
             throw new ResponseStatusException(BAD_REQUEST, "Customer number mismatch: " + accountNo);
         }
-        if (!Objects.equals(account.subjectCode(), subjectCode)) {
+        if (!Objects.equals(account.getSubjectCode(), subjectCode)) {
             throw new ResponseStatusException(BAD_REQUEST, "Subject code mismatch: " + accountNo);
         }
         return account;
@@ -218,5 +220,44 @@ public class CoreTransactionApplicationService {
             return currentBalance.add(amount);
         }
         return currentBalance.subtract(amount);
+    }
+
+    private Map<String, Object> buildBeforeSnapshot(CreateCoreTransactionRequest request) {
+        return Map.ofEntries(
+                Map.entry("requestId", request.getRequestId()),
+                Map.entry("bizOrderId", request.getBizOrderId()),
+                Map.entry("customerNo", request.getCustomerNo()),
+                Map.entry("txnType", request.getTxnType().name()),
+                Map.entry("occurredAt", request.getOccurredAt()),
+                Map.entry("debitAccountNo", request.getDebitAccountNo()),
+                Map.entry("debitAccountSeqNo", request.getDebitAccountSeqNo()),
+                Map.entry("creditAccountNo", request.getCreditAccountNo()),
+                Map.entry("creditAccountSeqNo", request.getCreditAccountSeqNo()),
+                Map.entry("amount", request.getAmount()),
+                Map.entry("currency", request.getCurrency())
+        );
+    }
+
+    private Map<String, Object> buildAfterSnapshot(
+            CoreTransaction transaction,
+            BigDecimal debitBalanceAfter,
+            BigDecimal creditBalanceAfter
+    ) {
+        return Map.ofEntries(
+                Map.entry("coreTxnId", transaction.getCoreTxnId()),
+                Map.entry("status", transaction.getStatus().name()),
+                Map.entry("createdAt", transaction.getCreatedAt()),
+                Map.entry("occurredAt", transaction.getOccurredAt()),
+                Map.entry("debitAccountNo", transaction.getDebitAccountNo()),
+                Map.entry("debitAccountSeqNo", transaction.getDebitAccountSeqNo()),
+                Map.entry("creditAccountNo", transaction.getCreditAccountNo()),
+                Map.entry("creditAccountSeqNo", transaction.getCreditAccountSeqNo()),
+                Map.entry("debitSubjectCode", transaction.getDebitSubjectCode()),
+                Map.entry("creditSubjectCode", transaction.getCreditSubjectCode()),
+                Map.entry("amount", transaction.getAmount()),
+                Map.entry("currency", transaction.getCurrency()),
+                Map.entry("debitBalanceAfter", debitBalanceAfter),
+                Map.entry("creditBalanceAfter", creditBalanceAfter)
+        );
     }
 }

@@ -36,26 +36,26 @@ public class CoreTransactionRepository {
 
     private CoreTransactionDO toDataObject(CoreTransaction transaction) {
         CoreTransactionDO dataObject = new CoreTransactionDO();
-        dataObject.setCoreTxnId(transaction.coreTxnId());
-        dataObject.setRequestId(transaction.requestId());
-        dataObject.setBizOrderId(transaction.bizOrderId());
-        dataObject.setBizType(transaction.bizType());
-        dataObject.setTxnType(transaction.txnType().name());
-        dataObject.setCustomerNo(transaction.customerNo());
-        dataObject.setAmount(transaction.amount());
-        dataObject.setCurrency(transaction.currency());
-        dataObject.setDebitAccountNo(transaction.debitAccountNo());
-        dataObject.setDebitAccountSeqNo(transaction.debitAccountSeqNo());
-        dataObject.setDebitSubjectCode(transaction.debitSubjectCode());
-        dataObject.setCreditAccountNo(transaction.creditAccountNo());
-        dataObject.setCreditAccountSeqNo(transaction.creditAccountSeqNo());
-        dataObject.setCreditSubjectCode(transaction.creditSubjectCode());
-        dataObject.setStatus(transaction.status().name());
-        dataObject.setFailureCode(transaction.failureCode());
-        dataObject.setFailureMessage(transaction.failureMessage());
-        dataObject.setOccurredAt(transaction.occurredAt());
-        dataObject.setCreatedAt(transaction.createdAt());
-        dataObject.setUpdatedAt(transaction.createdAt());
+        dataObject.setCoreTxnId(transaction.getCoreTxnId());
+        dataObject.setRequestId(transaction.getRequestId());
+        dataObject.setBizOrderId(transaction.getBizOrderId());
+        dataObject.setBizType(transaction.getBizType());
+        dataObject.setTxnType(transaction.getTxnType().name());
+        dataObject.setCustomerNo(transaction.getCustomerNo());
+        dataObject.setAmount(transaction.getAmount());
+        dataObject.setCurrency(transaction.getCurrency());
+        dataObject.setDebitAccountNo(transaction.getDebitAccountNo());
+        dataObject.setDebitAccountSeqNo(transaction.getDebitAccountSeqNo());
+        dataObject.setDebitSubjectCode(transaction.getDebitSubjectCode());
+        dataObject.setCreditAccountNo(transaction.getCreditAccountNo());
+        dataObject.setCreditAccountSeqNo(transaction.getCreditAccountSeqNo());
+        dataObject.setCreditSubjectCode(transaction.getCreditSubjectCode());
+        dataObject.setStatus(transaction.getStatus().name());
+        dataObject.setFailureCode(transaction.getFailureCode());
+        dataObject.setFailureMessage(transaction.getFailureMessage());
+        dataObject.setOccurredAt(transaction.getOccurredAt());
+        dataObject.setCreatedAt(transaction.getCreatedAt());
+        dataObject.setUpdatedAt(transaction.getCreatedAt());
         return dataObject;
     }
 

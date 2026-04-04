@@ -16,14 +16,14 @@ public class AuditLogRepository {
 
     public void save(AuditLog auditLog) {
         CoreAuditLogDO dataObject = new CoreAuditLogDO();
-        dataObject.setEntityType(auditLog.entityType());
-        dataObject.setEntityId(auditLog.entityId());
-        dataObject.setOperationType(auditLog.operationType());
-        dataObject.setOperatorId(auditLog.operatorId());
-        dataObject.setTraceId(auditLog.traceId());
-        dataObject.setBeforeSnapshot(auditLog.beforeSnapshot());
-        dataObject.setAfterSnapshot(auditLog.afterSnapshot());
-        dataObject.setCreatedAt(auditLog.createdAt());
+        dataObject.setEntityType(auditLog.getEntityType());
+        dataObject.setEntityId(auditLog.getEntityId());
+        dataObject.setOperationType(auditLog.getOperationType());
+        dataObject.setOperatorId(auditLog.getOperatorId());
+        dataObject.setTraceId(auditLog.getTraceId());
+        dataObject.setBeforeSnapshot(auditLog.getBeforeSnapshot());
+        dataObject.setAfterSnapshot(auditLog.getAfterSnapshot());
+        dataObject.setCreatedAt(auditLog.getCreatedAt());
         coreAuditLogMapper.insert(dataObject);
     }
 }
