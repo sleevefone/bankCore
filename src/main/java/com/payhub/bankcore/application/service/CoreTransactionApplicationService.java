@@ -16,15 +16,19 @@ import com.payhub.bankcore.infrastructure.persistence.repository.AccountReposito
 import com.payhub.bankcore.infrastructure.persistence.repository.AuditLogRepository;
 import com.payhub.bankcore.infrastructure.persistence.repository.CoreTransactionRepository;
 import com.payhub.bankcore.infrastructure.persistence.repository.LedgerEntryRepository;
+
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 @Service
@@ -71,71 +75,16 @@ public class CoreTransactionApplicationService {
         BigDecimal creditBalanceAfter = applyPosting(creditAccount.getAvailableBalance(), request.getAmount(), creditAccount.getNormalBalanceDirection(), DcDirection.CREDIT);
 
         LocalDateTime now = LocalDateTime.now();
-        CoreTransaction transaction = new CoreTransaction(
-                "CTX-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20),
-                request.getRequestId(),
-                request.getBizOrderId(),
-                request.getBizType(),
-                request.getTxnType(),
-                request.getCustomerNo(),
-                request.getAmount(),
-                request.getCurrency(),
-                request.getDebitAccountNo(),
-                request.getDebitAccountSeqNo(),
-                request.getDebitSubjectCode(),
-                request.getCreditAccountNo(),
-                request.getCreditAccountSeqNo(),
-                request.getCreditSubjectCode(),
-                CoreTransactionStatus.SUCCESS,
-                null,
-                null,
-                request.getOccurredAt(),
-                now
-        );
+        CoreTransaction transaction = buildTransaction(request, now);
 
         coreTransactionRepository.save(transaction);
         ledgerEntryRepository.saveAll(List.of(
-                new LedgerEntry(
-                        transaction.getCoreTxnId(),
-                        1,
-                        debitAccount.getAccountNo(),
-                        debitAccount.getAccountSeqNo(),
-                        debitAccount.getCustomerNo(),
-                        debitAccount.getSubjectCode(),
-                        EntryDirection.PRINCIPAL,
-                        DcDirection.DEBIT,
-                        request.getAmount(),
-                        request.getCurrency(),
-                        debitAccount.getAvailableBalance(),
-                        debitBalanceAfter
-                ),
-                new LedgerEntry(
-                        transaction.getCoreTxnId(),
-                        2,
-                        creditAccount.getAccountNo(),
-                        creditAccount.getAccountSeqNo(),
-                        creditAccount.getCustomerNo(),
-                        creditAccount.getSubjectCode(),
-                        EntryDirection.PRINCIPAL,
-                        DcDirection.CREDIT,
-                        request.getAmount(),
-                        request.getCurrency(),
-                        creditAccount.getAvailableBalance(),
-                        creditBalanceAfter
-                )
+                buildLedgerEntry(transaction, debitAccount, request, 1, DcDirection.DEBIT, debitAccount.getAvailableBalance(), debitBalanceAfter),
+                buildLedgerEntry(transaction, creditAccount, request, 2, DcDirection.CREDIT, creditAccount.getAvailableBalance(), creditBalanceAfter)
         ));
         accountRepository.updateAvailableBalance(debitAccount.getAccountNo(), debitBalanceAfter);
         accountRepository.updateAvailableBalance(creditAccount.getAccountNo(), creditBalanceAfter);
-        auditLogRepository.save(new AuditLog(
-                "CORE_TRANSACTION",
-                transaction.getCoreTxnId(),
-                "CREATE",
-                "system",
-                request.getRequestId(),
-                JacksonMapper.toJson(buildBeforeSnapshot(request)),
-                JacksonMapper.toJson(buildAfterSnapshot(transaction, debitBalanceAfter, creditBalanceAfter)),
-                now
-        ));
+        auditLogRepository.save(buildAuditLog(request, transaction, debitBalanceAfter, creditBalanceAfter, now));
         return toResponse(transaction, false, true, "POSTED", "Transaction posted successfully");
     }
 
@@ -155,36 +104,13 @@ public class CoreTransactionApplicationService {
         return toResponse(transaction, transaction.getStatus() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
     }
 
-    private CoreTransactionResponse toResponse(
-            CoreTransaction transaction,
-            boolean retryable,
-            boolean newlyAccepted,
-            String rawCode,
-            String rawMessage
-    ) {
-        return new CoreTransactionResponse(
-                transaction.getCoreTxnId(),
-                transaction.getRequestId(),
-                transaction.getBizOrderId(),
-                transaction.getBizType(),
-                transaction.getTxnType(),
-                transaction.getCustomerNo(),
-                transaction.getAmount(),
-                transaction.getCurrency(),
-                transaction.getDebitAccountNo(),
-                transaction.getDebitAccountSeqNo(),
-                transaction.getDebitSubjectCode(),
-                transaction.getCreditAccountNo(),
-                transaction.getCreditAccountSeqNo(),
-                transaction.getCreditSubjectCode(),
-                transaction.getStatus(),
-                transaction.getStatus() == CoreTransactionStatus.SUCCESS,
-                retryable,
-                rawCode,
-                rawMessage,
-                transaction.getOccurredAt(),
-                transaction.getCreatedAt()
-        );
+    private CoreTransactionResponse toResponse(CoreTransaction transaction, boolean retryable, boolean newlyAccepted, String rawCode, String rawMessage) {
+        CoreTransactionResponse resp = JacksonMapper.convertValue(transaction, CoreTransactionResponse.class);
+        resp.setSuccess(transaction.getStatus() == CoreTransactionStatus.SUCCESS);
+        resp.setRetryable(retryable);
+        resp.setRawCode(rawCode);
+        resp.setRawMessage(rawMessage);
+        return resp;
     }
 
     private Account validateAccount(
@@ -222,20 +148,57 @@ public class CoreTransactionApplicationService {
         return currentBalance.subtract(amount);
     }
 
+    private CoreTransaction buildTransaction(CreateCoreTransactionRequest request, LocalDateTime now) {
+        CoreTransaction transaction = JacksonMapper.convertValue(request, CoreTransaction.class);
+        transaction.setCoreTxnId("CTX-" + UUID.randomUUID().toString().replace("-", "").substring(0, 20));
+        transaction.setStatus(CoreTransactionStatus.SUCCESS);
+        transaction.setCreatedAt(now);
+        return transaction;
+    }
+
+    private LedgerEntry buildLedgerEntry(
+            CoreTransaction transaction,
+            Account account,
+            CreateCoreTransactionRequest request,
+            Integer entryNo,
+            DcDirection dcDirection,
+            BigDecimal balanceBefore,
+            BigDecimal balanceAfter
+    ) {
+        Map<String, Object> source = new LinkedHashMap<>(JacksonMapper.toMap(transaction));
+        source.putAll(JacksonMapper.toMap(account));
+        source.putAll(JacksonMapper.toMap(request));
+        source.put("entryNo", entryNo);
+        source.put("entryDirection", EntryDirection.PRINCIPAL);
+        source.put("dcDirection", dcDirection);
+        source.put("balanceBefore", balanceBefore);
+        source.put("balanceAfter", balanceAfter);
+        return JacksonMapper.convertValue(source, LedgerEntry.class);
+    }
+
+    private AuditLog buildAuditLog(
+            CreateCoreTransactionRequest request,
+            CoreTransaction transaction,
+            BigDecimal debitBalanceAfter,
+            BigDecimal creditBalanceAfter,
+            LocalDateTime now
+    ) {
+        Map<String, Object> source = new LinkedHashMap<>();
+        source.put("entityType", "CORE_TRANSACTION");
+        source.put("entityId", transaction.getCoreTxnId());
+        source.put("operationType", "CREATE");
+        source.put("operatorId", "system");
+        source.put("traceId", request.getRequestId());
+        source.put("beforeSnapshot", JacksonMapper.toJson(buildBeforeSnapshot(request)));
+        source.put("afterSnapshot", JacksonMapper.toJson(buildAfterSnapshot(transaction, debitBalanceAfter, creditBalanceAfter)));
+        source.put("createdAt", now);
+        return JacksonMapper.convertValue(source, AuditLog.class);
+    }
+
     private Map<String, Object> buildBeforeSnapshot(CreateCoreTransactionRequest request) {
-        return Map.ofEntries(
-                Map.entry("requestId", request.getRequestId()),
-                Map.entry("bizOrderId", request.getBizOrderId()),
-                Map.entry("customerNo", request.getCustomerNo()),
-                Map.entry("txnType", request.getTxnType().name()),
-                Map.entry("occurredAt", request.getOccurredAt()),
-                Map.entry("debitAccountNo", request.getDebitAccountNo()),
-                Map.entry("debitAccountSeqNo", request.getDebitAccountSeqNo()),
-                Map.entry("creditAccountNo", request.getCreditAccountNo()),
-                Map.entry("creditAccountSeqNo", request.getCreditAccountSeqNo()),
-                Map.entry("amount", request.getAmount()),
-                Map.entry("currency", request.getCurrency())
-        );
+        Map<String, Object> snapshot = new LinkedHashMap<>(JacksonMapper.toMap(request));
+        snapshot.put("txnType", request.getTxnType().name());
+        return snapshot;
     }
 
     private Map<String, Object> buildAfterSnapshot(
@@ -243,21 +206,10 @@ public class CoreTransactionApplicationService {
             BigDecimal debitBalanceAfter,
             BigDecimal creditBalanceAfter
     ) {
-        return Map.ofEntries(
-                Map.entry("coreTxnId", transaction.getCoreTxnId()),
-                Map.entry("status", transaction.getStatus().name()),
-                Map.entry("createdAt", transaction.getCreatedAt()),
-                Map.entry("occurredAt", transaction.getOccurredAt()),
-                Map.entry("debitAccountNo", transaction.getDebitAccountNo()),
-                Map.entry("debitAccountSeqNo", transaction.getDebitAccountSeqNo()),
-                Map.entry("creditAccountNo", transaction.getCreditAccountNo()),
-                Map.entry("creditAccountSeqNo", transaction.getCreditAccountSeqNo()),
-                Map.entry("debitSubjectCode", transaction.getDebitSubjectCode()),
-                Map.entry("creditSubjectCode", transaction.getCreditSubjectCode()),
-                Map.entry("amount", transaction.getAmount()),
-                Map.entry("currency", transaction.getCurrency()),
-                Map.entry("debitBalanceAfter", debitBalanceAfter),
-                Map.entry("creditBalanceAfter", creditBalanceAfter)
-        );
+        Map<String, Object> snapshot = new LinkedHashMap<>(JacksonMapper.toMap(transaction));
+        snapshot.put("status", transaction.getStatus().name());
+        snapshot.put("debitBalanceAfter", debitBalanceAfter);
+        snapshot.put("creditBalanceAfter", creditBalanceAfter);
+        return snapshot;
     }
 }
