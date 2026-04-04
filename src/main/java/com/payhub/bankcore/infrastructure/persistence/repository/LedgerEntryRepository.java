@@ -1,6 +1,6 @@
 package com.payhub.bankcore.infrastructure.persistence.repository;
 
-import com.payhub.bankcore.common.JacksonUtils;
+import com.payhub.bankcore.common.JacksonMapper;
 import com.payhub.bankcore.domain.model.LedgerEntry;
 import com.payhub.bankcore.infrastructure.persistence.dataobject.CoreLedgerEntryDO;
 import com.payhub.bankcore.infrastructure.persistence.mapper.CoreLedgerEntryMapper;
@@ -20,7 +20,7 @@ public class LedgerEntryRepository {
     public void saveAll(List<LedgerEntry> entries) {
         LocalDateTime now = LocalDateTime.now();
         for (LedgerEntry entry : entries) {
-            CoreLedgerEntryDO dataObject = JacksonUtils.convertValue(entry, CoreLedgerEntryDO.class);
+            CoreLedgerEntryDO dataObject = JacksonMapper.convertValue(entry, CoreLedgerEntryDO.class);
             dataObject.setCreatedAt(now);
             coreLedgerEntryMapper.insert(dataObject);
         }

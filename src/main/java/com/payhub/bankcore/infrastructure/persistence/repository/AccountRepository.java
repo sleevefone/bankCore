@@ -1,6 +1,6 @@
 package com.payhub.bankcore.infrastructure.persistence.repository;
 
-import com.payhub.bankcore.common.JacksonUtils;
+import com.payhub.bankcore.common.JacksonMapper;
 import com.payhub.bankcore.domain.model.Account;
 import com.payhub.bankcore.infrastructure.persistence.dataobject.CoreAccountDO;
 import com.payhub.bankcore.infrastructure.persistence.mapper.CoreAccountMapper;
@@ -18,7 +18,7 @@ public class AccountRepository {
 
     public Optional<Account> findByAccountNo(String accountNo) {
         return Optional.ofNullable(coreAccountMapper.selectById(accountNo))
-                .map(dataObject -> JacksonUtils.convertValue(dataObject, Account.class));
+                .map(dataObject -> JacksonMapper.convertValue(dataObject, Account.class));
     }
 
     public void updateAvailableBalance(String accountNo, java.math.BigDecimal availableBalance) {

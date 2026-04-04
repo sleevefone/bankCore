@@ -16,7 +16,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.junit.jupiter.api.Test;
 
-class JacksonUtilsTest {
+class JacksonMapperTest {
 
     @Test
     void shouldSerializeAndDeserializeJavaTimeObject() {
@@ -27,8 +27,8 @@ class JacksonUtilsTest {
                 List.of("PAY_IN", "AUDIT")
         );
 
-        String json = JacksonUtils.toJson(payload);
-        SamplePayload converted = JacksonUtils.fromJson(json, SamplePayload.class);
+        String json = JacksonMapper.toJson(payload);
+        SamplePayload converted = JacksonMapper.fromJson(json, SamplePayload.class);
 
         assertTrue(json.contains("\"createdAt\":\"2026-04-04T14:30:00\""));
         assertEquals(payload, converted);
@@ -43,8 +43,8 @@ class JacksonUtilsTest {
                 List.of("INTEREST")
         );
 
-        Map<String, Object> valueMap = JacksonUtils.toMap(payload);
-        SamplePayload converted = JacksonUtils.convertValue(valueMap, SamplePayload.class);
+        Map<String, Object> valueMap = JacksonMapper.toMap(payload);
+        SamplePayload converted = JacksonMapper.convertValue(valueMap, SamplePayload.class);
 
         assertEquals("ORD-2001", valueMap.get("orderId"));
         assertEquals(payload, converted);
@@ -59,7 +59,7 @@ class JacksonUtilsTest {
                 ]
                 """;
 
-        List<SamplePayload> payloads = JacksonUtils.fromJson(json, new TypeReference<>() {
+        List<SamplePayload> payloads = JacksonMapper.fromJson(json, new TypeReference<>() {
         });
 
         assertEquals(2, payloads.size());
@@ -69,7 +69,7 @@ class JacksonUtilsTest {
 
     @Test
     void shouldReadTreeWithoutBinding() {
-        JsonNode node = JacksonUtils.readTree("""
+        JsonNode node = JacksonMapper.readTree("""
                 {"requestId":"REQ-1","detail":{"customerNo":"CUST-1"}}
                 """);
 
@@ -83,7 +83,7 @@ class JacksonUtilsTest {
                 {"orderId":"ORD-3001","amount":30.00,"createdAt":"2026-04-04T18:00:00","tags":["X"],"extra":"ignored"}
                 """;
 
-        SamplePayload payload = JacksonUtils.fromJson(json, SamplePayload.class);
+        SamplePayload payload = JacksonMapper.fromJson(json, SamplePayload.class);
 
         assertEquals("ORD-3001", payload.getOrderId());
         assertFalse(payload.getTags().isEmpty());
@@ -93,7 +93,7 @@ class JacksonUtilsTest {
     void shouldThrowReadableExceptionOnInvalidJson() {
         IllegalArgumentException exception = assertThrows(
                 IllegalArgumentException.class,
-                () -> JacksonUtils.fromJson("{invalid-json}", SamplePayload.class)
+                () -> JacksonMapper.fromJson("{invalid-json}", SamplePayload.class)
         );
 
         assertTrue(exception.getMessage().contains("Failed to deserialize JSON"));

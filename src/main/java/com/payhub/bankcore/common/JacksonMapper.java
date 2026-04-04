@@ -8,13 +8,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import java.util.Map;
 
-public final class JacksonUtils {
+import java.util.Map;
+import java.util.function.Function;
+
+public final class JacksonMapper {
 
     private static final ObjectMapper OBJECT_MAPPER = buildObjectMapper();
 
-    private JacksonUtils() {
+    private JacksonMapper() {
     }
 
     public static String toJson(Object value) {
@@ -61,7 +63,19 @@ public final class JacksonUtils {
         return OBJECT_MAPPER.convertValue(source, targetType);
     }
 
-    public static <T> T convertValue(Object source, TypeReference<T> typeReference) {
+    public static <T,R> Function<R, T> convertValue(Class<T> typeReference) {
+        return source -> OBJECT_MAPPER.convertValue(source, typeReference);
+    }
+
+    public static <T,R> Function<R, T> convertValue(TypeReference<T> typeReference) {
+        return source -> OBJECT_MAPPER.convertValue(source, typeReference);
+    }
+    public static <R, T> T convertValue(R source, TypeReference<T> typeReference) {
+
+        return OBJECT_MAPPER.convertValue(source, typeReference);
+    }
+
+    public static <R, T> T convertValue2(R source, TypeReference<T> typeReference) {
         return OBJECT_MAPPER.convertValue(source, typeReference);
     }
 

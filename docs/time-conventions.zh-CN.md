@@ -48,7 +48,7 @@ HTTP JSON 一律使用 ISO-8601 字符串，不使用时间戳。
 
 工具类侧统一走：
 
-- `com.payhub.bankcore.common.JacksonUtils`
+- `com.payhub.bankcore.common.JacksonMapper`
 
 ## 4. MyBatis Plus 约定
 

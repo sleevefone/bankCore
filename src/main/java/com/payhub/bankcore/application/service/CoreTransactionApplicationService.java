@@ -2,7 +2,7 @@ package com.payhub.bankcore.application.service;
 
 import com.payhub.bankcore.application.dto.CoreTransactionResponse;
 import com.payhub.bankcore.application.dto.CreateCoreTransactionRequest;
-import com.payhub.bankcore.common.JacksonUtils;
+import com.payhub.bankcore.common.JacksonMapper;
 import com.payhub.bankcore.domain.enums.AccountStatus;
 import com.payhub.bankcore.domain.enums.BalanceDirection;
 import com.payhub.bankcore.domain.enums.CoreTransactionStatus;
@@ -132,8 +132,8 @@ public class CoreTransactionApplicationService {
                 "CREATE",
                 "system",
                 request.getRequestId(),
-                JacksonUtils.toJson(buildBeforeSnapshot(request)),
-                JacksonUtils.toJson(buildAfterSnapshot(transaction, debitBalanceAfter, creditBalanceAfter)),
+                JacksonMapper.toJson(buildBeforeSnapshot(request)),
+                JacksonMapper.toJson(buildAfterSnapshot(transaction, debitBalanceAfter, creditBalanceAfter)),
                 now
         ));
         return toResponse(transaction, false, true, "POSTED", "Transaction posted successfully");

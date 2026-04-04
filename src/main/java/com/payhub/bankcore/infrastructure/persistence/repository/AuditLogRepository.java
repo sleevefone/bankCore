@@ -1,6 +1,6 @@
 package com.payhub.bankcore.infrastructure.persistence.repository;
 
-import com.payhub.bankcore.common.JacksonUtils;
+import com.payhub.bankcore.common.JacksonMapper;
 import com.payhub.bankcore.domain.model.AuditLog;
 import com.payhub.bankcore.infrastructure.persistence.dataobject.CoreAuditLogDO;
 import com.payhub.bankcore.infrastructure.persistence.mapper.CoreAuditLogMapper;
@@ -16,7 +16,7 @@ public class AuditLogRepository {
     }
 
     public void save(AuditLog auditLog) {
-        CoreAuditLogDO dataObject = JacksonUtils.convertValue(auditLog, CoreAuditLogDO.class);
+        CoreAuditLogDO dataObject = JacksonMapper.convertValue(auditLog, CoreAuditLogDO.class);
         coreAuditLogMapper.insert(dataObject);
     }
 }
