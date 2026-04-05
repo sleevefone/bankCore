@@ -17,6 +17,23 @@
 
 - [核心系统架构设计](./docs/architecture.zh-CN.md)
 
+实施状态（截至 2026-04-05）：
+
+- 已完成
+- Spring Boot + MyBatis-Plus + Flyway 初始化
+- `POST /core/transactions` 与按 `requestId/bizOrderId` 查单
+- `core_transaction/core_ledger_entry/core_account/core_audit_log` 持久化
+- `core_transaction_history` 交易历史写入主链路
+- 统一异常处理与关键业务日志
+- OpenAPI 文档入口
+
+- 未完成
+- `core_idempotency_record` 独立幂等占位与并发控制
+- 利息详情与计提流程（`core_interest_detail/core_accrual_record`）
+- outbox 事件与补偿任务
+- 冻结/解冻、退款/冲正交易类型
+- 后管页面与运维工具
+
 本地开发约束：
 
 - 本项目统一使用 `JDK 21` 构建与运行

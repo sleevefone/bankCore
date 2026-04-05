@@ -812,3 +812,32 @@
 - 核心负责“这笔钱在内部账上怎么记、有没有真正落账”
 
 后面实现时，我们就可以围绕这个边界稳定往下做，而不会把支付编排和账务内核搅在一起。
+
+# 16. 实施状态（截至 2026-04-05）
+
+为避免文档与代码脱节，这里按“已完成/未完成”同步真实状态。
+
+## 16.1 已完成
+
+- [x] 工程骨架：Spring Boot + MyBatis-Plus + Flyway + H2 测试基建
+- [x] 核心接口：`POST /core/transactions`、`GET /core/transactions/{bizOrderId}`、`GET /core/transactions?requestId=...`
+- [x] 最小记账闭环：核心交易主单、分录、余额更新、审计日志
+- [x] 交易历史：`core_transaction_history` 已接入创建主链路
+- [x] 架构审计基础字段：账号序号、客户号、科目、借贷方向、余额快照
+- [x] 全局异常处理与关键日志（含服务层上下文）
+- [x] OpenAPI 文档入口与基础接口说明
+
+## 16.2 未完成
+
+- [ ] 幂等内核：`core_idempotency_record` 独立占位与并发防重
+- [ ] 利息与计提：`core_interest_detail`、`core_accrual_record` 业务流程
+- [ ] 交易扩展：`PAY_OUT/FREEZE/UNFREEZE/REVERSE`
+- [ ] 可靠性：outbox 事件、补偿任务、失败重放
+- [ ] 联调：与 `pay-hello` 端到端回调补偿闭环
+- [ ] 运营后管：查询、审计、异常处置页面
+
+## 16.3 Phase 进度
+
+- [x] Phase 1：最小闭环已跑通（进行中，仍需补独立幂等占位）
+- [ ] Phase 2：可靠性与可运维性（未开始）
+- [ ] Phase 3：复杂交易与运营能力（未开始）

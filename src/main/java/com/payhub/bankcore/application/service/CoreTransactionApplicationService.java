@@ -15,6 +15,7 @@ import com.payhub.bankcore.domain.model.LedgerEntry;
 import com.payhub.bankcore.infrastructure.persistence.repository.AccountRepository;
 import com.payhub.bankcore.infrastructure.persistence.repository.AuditLogRepository;
 import com.payhub.bankcore.infrastructure.persistence.repository.CoreTransactionRepository;
+import com.payhub.bankcore.infrastructure.persistence.repository.CoreTransactionHistoryRepository;
 import com.payhub.bankcore.infrastructure.persistence.repository.LedgerEntryRepository;
 
 import java.math.BigDecimal;
@@ -40,17 +41,20 @@ public class CoreTransactionApplicationService {
     private final AccountRepository accountRepository;
     private final LedgerEntryRepository ledgerEntryRepository;
     private final AuditLogRepository auditLogRepository;
+    private final CoreTransactionHistoryRepository coreTransactionHistoryRepository;
 
     public CoreTransactionApplicationService(
             CoreTransactionRepository coreTransactionRepository,
             AccountRepository accountRepository,
             LedgerEntryRepository ledgerEntryRepository,
-            AuditLogRepository auditLogRepository
+            AuditLogRepository auditLogRepository,
+            CoreTransactionHistoryRepository coreTransactionHistoryRepository
     ) {
         this.coreTransactionRepository = coreTransactionRepository;
         this.accountRepository = accountRepository;
         this.ledgerEntryRepository = ledgerEntryRepository;
         this.auditLogRepository = auditLogRepository;
+        this.coreTransactionHistoryRepository = coreTransactionHistoryRepository;
     }
 
     @Transactional
@@ -93,6 +97,14 @@ public class CoreTransactionApplicationService {
             accountRepository.updateAvailableBalance(debitAccount.getAccountNo(), debitBalanceAfter);
             accountRepository.updateAvailableBalance(creditAccount.getAccountNo(), creditBalanceAfter);
             auditLogRepository.save(buildAuditLog(request, transaction, debitBalanceAfter, creditBalanceAfter, now));
+            coreTransactionHistoryRepository.save(
+                    transaction.getCoreTxnId(),
+                    null,
+                    transaction.getStatus().name(),
+                    "POSTED",
+                    "Core transaction posted successfully",
+                    now
+            );
         } catch (RuntimeException ex) {
             log.error("Failed to post core transaction: requestId={}, bizOrderId={}, coreTxnId={}, debitAccountNo={}, creditAccountNo={}",
                     request.getRequestId(), request.getBizOrderId(), transaction.getCoreTxnId(),

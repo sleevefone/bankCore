@@ -1,4 +1,5 @@
 DELETE FROM core_audit_log;
+DELETE FROM core_transaction_history;
 DELETE FROM core_ledger_entry;
 DELETE FROM core_transaction;
 DELETE FROM core_account;
