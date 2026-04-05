@@ -31,13 +31,13 @@ public class CoreCustomerRepository {
     public List<CoreCustomerDO> search(String customerNo, String customerName, String mobile) {
         LambdaQueryWrapper<CoreCustomerDO> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(customerNo)) {
-            wrapper.eq(CoreCustomerDO::getCustomerNo, customerNo);
+            wrapper.like(CoreCustomerDO::getCustomerNo, customerNo);
         }
         if (StringUtils.hasText(customerName)) {
             wrapper.like(CoreCustomerDO::getCustomerName, customerName);
         }
         if (StringUtils.hasText(mobile)) {
-            wrapper.eq(CoreCustomerDO::getMobile, mobile);
+            wrapper.like(CoreCustomerDO::getMobile, mobile);
         }
         wrapper.orderByDesc(CoreCustomerDO::getId);
         return coreCustomerMapper.selectList(wrapper);

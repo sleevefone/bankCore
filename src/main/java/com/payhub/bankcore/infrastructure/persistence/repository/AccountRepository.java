@@ -33,10 +33,10 @@ public class AccountRepository {
     public List<Account> search(String customerNo, String accountNo, String accountType) {
         LambdaQueryWrapper<CoreAccountDO> wrapper = new LambdaQueryWrapper<>();
         if (StringUtils.hasText(customerNo)) {
-            wrapper.eq(CoreAccountDO::getCustomerNo, customerNo);
+            wrapper.like(CoreAccountDO::getCustomerNo, customerNo);
         }
         if (StringUtils.hasText(accountNo)) {
-            wrapper.eq(CoreAccountDO::getAccountNo, accountNo);
+            wrapper.like(CoreAccountDO::getAccountNo, accountNo);
         }
         if (StringUtils.hasText(accountType)) {
             wrapper.eq(CoreAccountDO::getAccountType, accountType);

@@ -3,6 +3,7 @@ package com.payhub.bankcore.application.service;
 import com.payhub.bankcore.application.dto.admin.AccountView;
 import com.payhub.bankcore.application.dto.admin.AccountPageResult;
 import com.payhub.bankcore.application.dto.admin.CreateCustomerRequest;
+import com.payhub.bankcore.application.dto.admin.CustomerPageResult;
 import com.payhub.bankcore.application.dto.admin.CustomerView;
 import com.payhub.bankcore.application.dto.admin.OpenAccountRequest;
 import com.payhub.bankcore.common.JacksonMapper;
@@ -59,6 +60,23 @@ public class AdminManagementService {
         CoreCustomerDO customer = coreCustomerRepository.findByCustomerNo(customerNo)
                 .orElseThrow(() -> new ResponseStatusException(NOT_FOUND, "Customer not found: " + customerNo));
         return JacksonMapper.convertValue(customer, CustomerView.class);
+    }
+
+    public CustomerPageResult searchCustomers(String customerNo, String customerName, String mobile, long pageNo, long pageSize) {
+        long safePageNo = Math.max(pageNo, 1);
+        long safePageSize = Math.clamp(pageSize, 1, 200);
+        List<CustomerView> all = coreCustomerRepository.search(customerNo, customerName, mobile).stream()
+                .map(customer -> JacksonMapper.convertValue(customer, CustomerView.class))
+                .toList();
+        int from = (int) Math.min((safePageNo - 1) * safePageSize, all.size());
+        int to = (int) Math.min(from + safePageSize, all.size());
+
+        CustomerPageResult result = new CustomerPageResult();
+        result.setPageNo(safePageNo);
+        result.setPageSize(safePageSize);
+        result.setTotal(all.size());
+        result.setRecords(all.subList(from, to));
+        return result;
     }
 
     @Transactional

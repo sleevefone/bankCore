@@ -24,8 +24,15 @@
         .tips { color:var(--muted); font-size:13px; margin-bottom:8px; }
         .ok { color:var(--ok); }
         .err { color:var(--err); }
+        .msg { margin:10px 0; font-size:13px; }
         table { width:100%; border-collapse:collapse; }
         th, td { border-bottom:1px solid var(--line); text-align:left; padding:8px; font-size:13px; }
+        tr.clickable:hover { background:#f3f8ff; cursor:pointer; }
+        .detail { background:#f9fbff; border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:12px; }
+        .detail h3 { margin:0 0 8px; font-size:15px; }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
+        .kv { font-size:13px; }
+        .kv b { display:block; color:var(--muted); font-weight:500; margin-bottom:2px; }
     </style>
 </head>
 <body>
@@ -33,6 +40,7 @@
     <h1>核心后管测试页</h1>
     <div class="menu">
         <button id="menu-open" class="active" onclick="switchPanel('open')">开户操作</button>
+        <button id="menu-customer" onclick="switchPanel('customer')">客户主表</button>
         <button id="menu-account" onclick="switchPanel('account')">账号主表</button>
     </div>
 
@@ -75,6 +83,40 @@
     </div>
     </div>
 
+    <div id="panel-customer" class="panel">
+        <div class="card">
+            <h2>客户主表查询</h2>
+            <div class="row">
+                <input id="sCustomerNo2" placeholder="customerNo">
+                <input id="sCustomerName2" placeholder="customerName">
+                <input id="sMobile2" placeholder="mobile">
+                <input id="sCustomerPageNo" value="1" placeholder="pageNo">
+                <input id="sCustomerPageSize" value="20" placeholder="pageSize">
+                <button onclick="searchCustomers()">查询客户主表</button>
+            </div>
+            <div class="row">
+                <input id="dCustomerNo2" placeholder="customerNo">
+                <button onclick="queryCustomerDetailFromTable()">查客户详情</button>
+            </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>customerNo</th>
+                    <th>customerName</th>
+                    <th>mobile</th>
+                    <th>idNo</th>
+                    <th>status</th>
+                </tr>
+                </thead>
+                <tbody id="customerTableBody"></tbody>
+            </table>
+            <div class="detail" id="customerDetailBox" style="display:none;">
+                <h3>客户详情</h3>
+                <div class="grid" id="customerDetailGrid"></div>
+            </div>
+        </div>
+    </div>
+
     <div id="panel-account" class="panel">
         <div class="card">
             <h2>账号主表查询</h2>
@@ -112,24 +154,56 @@
                 </thead>
                 <tbody id="accountTableBody"></tbody>
             </table>
+            <div class="detail" id="accountDetailBox" style="display:none;">
+                <h3>账号详情</h3>
+                <div class="grid" id="accountDetailGrid"></div>
+            </div>
         </div>
     </div>
 
     <div class="card">
-        <h2>结果</h2>
-        <pre id="out"></pre>
+        <h2>操作状态</h2>
+        <div id="msg" class="msg"></div>
+        <details>
+            <summary>调试 JSON（可选）</summary>
+            <pre id="out"></pre>
+        </details>
     </div>
 </div>
 <script>
     const out = document.getElementById("out");
+    const msg = document.getElementById("msg");
+    let currentCustomerRecords = [];
+    let currentAccountRecords = [];
     function switchPanel(name) {
         document.getElementById("panel-open").classList.toggle("active", name === "open");
+        document.getElementById("panel-customer").classList.toggle("active", name === "customer");
         document.getElementById("panel-account").classList.toggle("active", name === "account");
         document.getElementById("menu-open").classList.toggle("active", name === "open");
+        document.getElementById("menu-customer").classList.toggle("active", name === "customer");
         document.getElementById("menu-account").classList.toggle("active", name === "account");
     }
-    function show(title, data, ok = true) {
-        out.innerHTML = `<span class="${ok ? "ok" : "err"}">${title}</span>\n` + JSON.stringify(data, null, 2);
+    function showOk(title) {
+        msg.innerHTML = `<span class="ok">${title}</span>`;
+        out.textContent = "";
+    }
+    function showErr(title, data) {
+        msg.innerHTML = `<span class="err">${title}</span>`;
+        out.textContent = JSON.stringify(data, null, 2);
+    }
+    function renderDetail(containerId, data) {
+        const grid = document.getElementById(containerId);
+        const box = grid.parentElement;
+        const pretty = (v) => {
+            if (v === null || v === undefined) return "";
+            if (typeof v === "object") return JSON.stringify(v, null, 2);
+            return String(v);
+        };
+        const rows = Object.entries(data || {}).map(([k, v]) =>
+            `<div class="kv"><b>${k}</b><code>${pretty(v)}</code></div>`
+        );
+        grid.innerHTML = rows.join("");
+        box.style.display = "block";
     }
     function numberOrNull(v) {
         if (!v) return null;
@@ -154,8 +228,8 @@
                 mobile: cMobile.value.trim(),
                 idNo: cIdNo.value.trim()
             });
-            show("创建客户成功", data, true);
-        } catch (e) { show("创建客户失败", e, false); }
+            showOk("创建客户成功");
+        } catch (e) { showErr("创建客户失败", e); }
     }
     function accountPayload() {
         return {
@@ -169,26 +243,75 @@
     async function openDeposit() {
         try {
             const data = await req("/admin/accounts/deposit", "POST", accountPayload());
-            show("开存款账号成功", data, true);
-        } catch (e) { show("开存款账号失败", e, false); }
+            showOk("开存款账号成功");
+            renderDetail("accountDetailGrid", data);
+            switchPanel("account");
+        } catch (e) { showErr("开存款账号失败", e); }
     }
     async function openLoan() {
         try {
             const data = await req("/admin/accounts/loan", "POST", accountPayload());
-            show("开贷款账号成功", data, true);
-        } catch (e) { show("开贷款账号失败", e, false); }
+            showOk("开贷款账号成功");
+            renderDetail("accountDetailGrid", data);
+            switchPanel("account");
+        } catch (e) { showErr("开贷款账号失败", e); }
     }
     async function queryCustomer() {
         try {
             const data = await req(`/admin/customers/${encodeURIComponent(qCustomerNo.value.trim())}`, "GET");
-            show("客户查询成功", data, true);
-        } catch (e) { show("客户查询失败", e, false); }
+            renderDetail("customerDetailGrid", data);
+            showOk("客户查询成功");
+        } catch (e) { showErr("客户查询失败", e); }
     }
     async function queryAccounts() {
         try {
             const data = await req(`/admin/customers/${encodeURIComponent(qCustomerNo.value.trim())}/accounts`, "GET");
-            show("客户账号查询成功", data, true);
-        } catch (e) { show("客户账号查询失败", e, false); }
+            renderAccountTable(data || []);
+            switchPanel("account");
+            showOk("客户账号列表已加载，可点击行查看详情");
+        } catch (e) { showErr("客户账号查询失败", e); }
+    }
+    async function searchCustomers() {
+        try {
+            const params = new URLSearchParams({
+                customerNo: sCustomerNo2.value.trim(),
+                customerName: sCustomerName2.value.trim(),
+                mobile: sMobile2.value.trim(),
+                pageNo: sCustomerPageNo.value.trim() || "1",
+                pageSize: sCustomerPageSize.value.trim() || "20"
+            });
+            const data = await req(`/admin/customers?${params.toString()}`, "GET");
+            renderCustomerTable(data.records || []);
+            showOk("客户主表查询成功，可点击行查看详情");
+        } catch (e) { showErr("客户主表查询失败", e); }
+    }
+    function renderCustomerTable(records) {
+        currentCustomerRecords = records;
+        customerTableBody.innerHTML = records.map((r, idx) => `
+            <tr class="clickable" data-idx="${idx}" onclick='pickCustomerRow(this.dataset.idx)'>
+                <td>${r.customerNo || ""}</td>
+                <td>${r.customerName || ""}</td>
+                <td>${r.mobile || ""}</td>
+                <td>${r.idNo || ""}</td>
+                <td>${r.status || ""}</td>
+            </tr>
+        `).join("");
+        if (records.length > 0) {
+            renderDetail("customerDetailGrid", records[0]);
+        }
+    }
+    function pickCustomerRow(idx) {
+        const row = currentCustomerRecords[Number(idx)];
+        if (row) {
+            renderDetail("customerDetailGrid", row);
+        }
+    }
+    async function queryCustomerDetailFromTable() {
+        try {
+            const data = await req(`/admin/customers/${encodeURIComponent(dCustomerNo2.value.trim())}`, "GET");
+            renderDetail("customerDetailGrid", data);
+            showOk("客户详情查询成功");
+        } catch (e) { showErr("客户详情查询失败", e); }
     }
     async function searchAccounts() {
         try {
@@ -201,12 +324,13 @@
             });
             const data = await req(`/admin/accounts?${params.toString()}`, "GET");
             renderAccountTable(data.records || []);
-            show("账号主表查询成功", data, true);
-        } catch (e) { show("账号主表查询失败", e, false); }
+            showOk("账号主表查询成功，可点击行查看详情");
+        } catch (e) { showErr("账号主表查询失败", e); }
     }
     function renderAccountTable(records) {
-        accountTableBody.innerHTML = records.map(r => `
-            <tr>
+        currentAccountRecords = records;
+        accountTableBody.innerHTML = records.map((r, idx) => `
+            <tr class="clickable" data-idx="${idx}" onclick='pickAccountRow(this.dataset.idx)'>
                 <td>${r.accountNo || ""}</td>
                 <td>${r.customerNo || ""}</td>
                 <td>${r.accountType || ""}</td>
@@ -216,12 +340,22 @@
                 <td>${r.status || ""}</td>
             </tr>
         `).join("");
+        if (records.length > 0) {
+            renderDetail("accountDetailGrid", records[0]);
+        }
+    }
+    function pickAccountRow(idx) {
+        const row = currentAccountRecords[Number(idx)];
+        if (row) {
+            renderDetail("accountDetailGrid", row);
+        }
     }
     async function queryAccountDetail() {
         try {
             const data = await req(`/admin/accounts/${encodeURIComponent(dAccountNo.value.trim())}`, "GET");
-            show("账号详情查询成功", data, true);
-        } catch (e) { show("账号详情查询失败", e, false); }
+            renderDetail("accountDetailGrid", data);
+            showOk("账号详情查询成功");
+        } catch (e) { showErr("账号详情查询失败", e); }
     }
 </script>
 </body>
