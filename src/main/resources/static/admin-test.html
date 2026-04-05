@@ -124,7 +124,12 @@
             <div class="row">
                 <input id="aCustomerNo" placeholder="customerNo">
                 <input id="aCurrency" value="CNY" placeholder="currency">
-                <input id="aSubjectCode" placeholder="subjectCode (201001/130101)">
+                <select id="aSubjectCode" onchange="refreshSubjectUsageTip()">
+                    <option value="201001" data-usage="存款本金负债科目：用于记录客户存款本金。">201001 - 存款本金（客户资金沉淀）</option>
+                    <option value="130101" data-usage="贷款本金资产科目：用于记录客户贷款本金。">130101 - 贷款本金（客户授信放款）</option>
+                    <option value="201002" data-usage="存款利息相关科目：用于存款利息计提/结息扩展。">201002 - 存款利息（计提/结息）</option>
+                    <option value="130102" data-usage="贷款利息相关科目：用于贷款利息计提/收息扩展。">130102 - 贷款利息（计提/收息）</option>
+                </select>
                 <select id="aDirection">
                     <option value="DEBIT">DEBIT</option>
                     <option value="CREDIT">CREDIT</option>
@@ -133,6 +138,7 @@
                 <button class="action" onclick="openDeposit()">开存款账号</button>
                 <button class="action" onclick="openLoan()">开贷款账号</button>
             </div>
+            <div class="tips" id="subjectUsageTip"></div>
         </div>
     </div>
 
@@ -310,8 +316,22 @@
         };
     }
 
+    function applyDefaultSubject(accountType) {
+        const defaultSubject = accountType === "DEPOSIT" ? "201001" : "130101";
+        if (!aSubjectCode.value || aSubjectCode.value === "201001" || aSubjectCode.value === "130101") {
+            aSubjectCode.value = defaultSubject;
+        }
+        refreshSubjectUsageTip();
+    }
+
+    function refreshSubjectUsageTip() {
+        const usage = aSubjectCode.options[aSubjectCode.selectedIndex]?.dataset?.usage || "";
+        document.getElementById("subjectUsageTip").textContent = `科目作用：${usage}`;
+    }
+
     async function openDeposit() {
         try {
+            applyDefaultSubject("DEPOSIT");
             const data = await req("/admin/accounts/deposit", "POST", accountPayload());
             showOk("开存款账号成功", data);
         } catch (e) {
@@ -321,6 +341,7 @@
 
     async function openLoan() {
         try {
+            applyDefaultSubject("LOAN");
             const data = await req("/admin/accounts/loan", "POST", accountPayload());
             showOk("开贷款账号成功", data);
         } catch (e) {
@@ -399,6 +420,7 @@
     }
 
     panelFromQuery();
+    applyDefaultSubject("DEPOSIT");
 </script>
 </body>
 </html>
