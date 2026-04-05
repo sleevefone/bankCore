@@ -3,101 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Bank Core Admin Test</title>
+    <title>Bank Core Admin</title>
     <style>
-        :root { --bg:#f5f7fb; --card:#fff; --line:#d9e1ec; --text:#1b2430; --muted:#6b7787; --primary:#0b69ff; --ok:#14804a; --err:#c62828; }
-        body { margin:0; background:var(--bg); color:var(--text); font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
-        .wrap { max-width:1100px; margin:24px auto; padding:0 16px; }
-        .menu { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
-        .menu button { background:#fff; color:var(--text); border:1px solid var(--line); }
-        .menu button.active { background:var(--primary); color:#fff; border-color:var(--primary); }
-        .panel { display:none; }
-        .panel.active { display:block; }
-        .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
-        h1 { margin:0 0 12px; font-size:22px; }
-        h2 { margin:0 0 12px; font-size:18px; }
-        .row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
-        input, select, button { padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
-        input, select { min-width:180px; background:#fff; }
-        button { background:var(--primary); color:#fff; cursor:pointer; border:none; }
-        pre { background:#0e1726; color:#cde3ff; padding:12px; border-radius:8px; overflow:auto; min-height:80px; }
-        .tips { color:var(--muted); font-size:13px; margin-bottom:8px; }
-        .ok { color:var(--ok); }
-        .err { color:var(--err); }
-        .msg { margin:10px 0; font-size:13px; }
-        table { width:100%; border-collapse:collapse; }
-        th, td { border-bottom:1px solid var(--line); text-align:left; padding:8px; font-size:13px; }
-        tr.clickable:hover { background:#f3f8ff; cursor:pointer; }
-        .detail { background:#f9fbff; border:1px solid var(--line); border-radius:10px; padding:12px; margin-top:12px; }
-        .detail h3 { margin:0 0 8px; font-size:15px; }
-        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
-        .kv { font-size:13px; }
-        .kv b { display:block; color:var(--muted); font-weight:500; margin-bottom:2px; }
+        :root {
+            --bg:#f5f7fb;
+            --card:#fff;
+            --line:#d8e1ed;
+            --text:#17212f;
+            --muted:#6b7787;
+            --primary:#0b69ff;
+            --ok:#118847;
+            --err:#c62828;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        .wrap { max-width: 1200px; margin: 20px auto; padding: 0 12px; }
+        h1 { margin: 0 0 12px; font-size: 22px; }
+        .menu { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+        .menu button {
+            border: 1px solid var(--line);
+            background: #fff;
+            color: var(--text);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .menu button.active {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+        }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        h2 { margin: 0 0 10px; font-size: 17px; }
+        .tips { color: var(--muted); font-size: 13px; margin-bottom: 8px; }
+        .row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+        input, select, button {
+            border-radius: 8px;
+            font-size: 14px;
+            padding: 8px 10px;
+            border: 1px solid var(--line);
+        }
+        input, select { min-width: 170px; background: #fff; }
+        button.action {
+            background: var(--primary);
+            border-color: var(--primary);
+            color: #fff;
+            cursor: pointer;
+        }
+        .meta { color: var(--muted); font-size: 12px; margin: 4px 0 8px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td {
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            padding: 8px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        .op-btn {
+            display: inline-block;
+            text-decoration: none;
+            background: #eaf2ff;
+            color: #1b4fbf;
+            border: 1px solid #cddfff;
+            border-radius: 6px;
+            padding: 4px 8px;
+            font-size: 12px;
+        }
+        .empty { color: var(--muted); text-align: center; padding: 12px; }
+        .msg { margin: 8px 0; font-size: 13px; }
+        .ok { color: var(--ok); }
+        .err { color: var(--err); }
+        pre {
+            margin: 0;
+            background: #0e1726;
+            color: #cde3ff;
+            padding: 10px;
+            border-radius: 8px;
+            min-height: 72px;
+            overflow: auto;
+        }
     </style>
 </head>
 <body>
 <div class="wrap">
     <h1>核心后管测试页</h1>
+
     <div class="menu">
-        <button id="menu-open" class="active" onclick="switchPanel('open')">开户操作</button>
-        <button id="menu-customer" onclick="switchPanel('customer')">客户主表</button>
-        <button id="menu-account" onclick="switchPanel('account')">账号主表</button>
+        <button id="menu-open" class="active" onclick="switchPanel('open')">开户操作页</button>
+        <button id="menu-customer" onclick="switchPanel('customer')">客户主表页</button>
+        <button id="menu-account" onclick="switchPanel('account')">账号主表页</button>
     </div>
 
     <div id="panel-open" class="panel active">
-    <div class="card">
-        <h2>1) 开客户</h2>
-        <div class="tips">先建客户，再开账户。`customerNo` 建议用 `CUST-xxxx`。</div>
-        <div class="row">
-            <input id="cNo" placeholder="customerNo">
-            <input id="cName" placeholder="customerName">
-            <input id="cMobile" placeholder="mobile">
-            <input id="cIdNo" placeholder="idNo">
-            <button onclick="createCustomer()">创建客户</button>
+        <div class="card">
+            <h2>客户开户</h2>
+            <div class="tips">先创建客户，再创建账号。</div>
+            <div class="row">
+                <input id="cNo" placeholder="customerNo">
+                <input id="cName" placeholder="customerName">
+                <input id="cMobile" placeholder="mobile">
+                <input id="cIdNo" placeholder="idNo">
+                <button class="action" onclick="createCustomer()">创建客户</button>
+            </div>
         </div>
-    </div>
-
-    <div class="card">
-        <h2>2) 开存款账号 / 贷款账号</h2>
-        <div class="row">
-            <input id="aCustomerNo" placeholder="customerNo">
-            <input id="aCurrency" value="CNY" placeholder="currency">
-            <input id="aSubjectCode" placeholder="subjectCode (如 201001/130101)">
-            <select id="aDirection">
-                <option value="DEBIT">DEBIT</option>
-                <option value="CREDIT">CREDIT</option>
-            </select>
-            <input id="aRate" placeholder="interestRate (可空)">
-            <button onclick="openDeposit()">开存款账号</button>
-            <button onclick="openLoan()">开贷款账号</button>
+        <div class="card">
+            <h2>账号开户</h2>
+            <div class="row">
+                <input id="aCustomerNo" placeholder="customerNo">
+                <input id="aCurrency" value="CNY" placeholder="currency">
+                <input id="aSubjectCode" placeholder="subjectCode (201001/130101)">
+                <select id="aDirection">
+                    <option value="DEBIT">DEBIT</option>
+                    <option value="CREDIT">CREDIT</option>
+                </select>
+                <input id="aRate" placeholder="interestRate (可空)">
+                <button class="action" onclick="openDeposit()">开存款账号</button>
+                <button class="action" onclick="openLoan()">开贷款账号</button>
+            </div>
         </div>
-    </div>
-
-    <div class="card">
-        <h2>3) 客户与账号查询</h2>
-        <div class="row">
-            <input id="qCustomerNo" placeholder="customerNo">
-            <button onclick="queryCustomer()">查客户</button>
-            <button onclick="queryAccounts()">查客户账号</button>
-        </div>
-    </div>
     </div>
 
     <div id="panel-customer" class="panel">
         <div class="card">
-            <h2>客户主表查询</h2>
+            <h2>客户主表列表</h2>
             <div class="row">
-                <input id="sCustomerNo2" placeholder="customerNo">
-                <input id="sCustomerName2" placeholder="customerName">
-                <input id="sMobile2" placeholder="mobile">
+                <input id="sCustomerNo" placeholder="customerNo">
+                <input id="sCustomerName" placeholder="customerName">
+                <input id="sMobile" placeholder="mobile">
                 <input id="sCustomerPageNo" value="1" placeholder="pageNo">
                 <input id="sCustomerPageSize" value="20" placeholder="pageSize">
-                <button onclick="searchCustomers()">查询客户主表</button>
+                <button class="action" onclick="searchCustomers()">查询客户列表</button>
             </div>
-            <div class="row">
-                <input id="dCustomerNo2" placeholder="customerNo">
-                <button onclick="queryCustomerDetailFromTable()">查客户详情</button>
-            </div>
+            <div class="meta" id="customerMeta"></div>
             <table>
                 <thead>
                 <tr>
@@ -106,22 +156,19 @@
                     <th>mobile</th>
                     <th>idNo</th>
                     <th>status</th>
+                    <th>操作</th>
                 </tr>
                 </thead>
                 <tbody id="customerTableBody"></tbody>
             </table>
-            <div class="detail" id="customerDetailBox" style="display:none;">
-                <h3>客户详情</h3>
-                <div class="grid" id="customerDetailGrid"></div>
-            </div>
         </div>
     </div>
 
     <div id="panel-account" class="panel">
         <div class="card">
-            <h2>账号主表查询</h2>
+            <h2>账号主表列表</h2>
             <div class="row">
-                <input id="sCustomerNo" placeholder="customerNo">
+                <input id="sAccountCustomerNo" placeholder="customerNo">
                 <input id="sAccountNo" placeholder="accountNo">
                 <select id="sAccountType">
                     <option value="">全部账户类型</option>
@@ -132,32 +179,26 @@
                     <option value="INTERNAL">INTERNAL</option>
                     <option value="CLEARING">CLEARING</option>
                 </select>
-                <input id="sPageNo" value="1" placeholder="pageNo">
-                <input id="sPageSize" value="20" placeholder="pageSize">
-                <button onclick="searchAccounts()">查询主表</button>
+                <input id="sAccountPageNo" value="1" placeholder="pageNo">
+                <input id="sAccountPageSize" value="20" placeholder="pageSize">
+                <button class="action" onclick="searchAccounts()">查询账号列表</button>
             </div>
-            <div class="row">
-                <input id="dAccountNo" placeholder="accountNo">
-                <button onclick="queryAccountDetail()">查账号详情</button>
-            </div>
+            <div class="meta" id="accountMeta"></div>
             <table>
                 <thead>
                 <tr>
                     <th>accountNo</th>
                     <th>customerNo</th>
-                    <th>type</th>
+                    <th>accountType</th>
                     <th>currency</th>
-                    <th>avail</th>
-                    <th>frozen</th>
+                    <th>availableBalance</th>
+                    <th>frozenBalance</th>
                     <th>status</th>
+                    <th>操作</th>
                 </tr>
                 </thead>
                 <tbody id="accountTableBody"></tbody>
             </table>
-            <div class="detail" id="accountDetailBox" style="display:none;">
-                <h3>账号详情</h3>
-                <div class="grid" id="accountDetailGrid"></div>
-            </div>
         </div>
     </div>
 
@@ -170,46 +211,36 @@
         </details>
     </div>
 </div>
+
 <script>
     const out = document.getElementById("out");
     const msg = document.getElementById("msg");
-    let currentCustomerRecords = [];
-    let currentAccountRecords = [];
-    function switchPanel(name) {
-        document.getElementById("panel-open").classList.toggle("active", name === "open");
-        document.getElementById("panel-customer").classList.toggle("active", name === "customer");
-        document.getElementById("panel-account").classList.toggle("active", name === "account");
-        document.getElementById("menu-open").classList.toggle("active", name === "open");
-        document.getElementById("menu-customer").classList.toggle("active", name === "customer");
-        document.getElementById("menu-account").classList.toggle("active", name === "account");
+
+    function showOk(title, data) {
+        msg.innerHTML = `<span class="ok">${escapeHtml(title)}</span>`;
+        out.textContent = data ? JSON.stringify(data, null, 2) : "";
     }
-    function showOk(title) {
-        msg.innerHTML = `<span class="ok">${title}</span>`;
-        out.textContent = "";
-    }
+
     function showErr(title, data) {
-        msg.innerHTML = `<span class="err">${title}</span>`;
-        out.textContent = JSON.stringify(data, null, 2);
+        msg.innerHTML = `<span class="err">${escapeHtml(title)}</span>`;
+        out.textContent = JSON.stringify(data || {}, null, 2);
     }
-    function renderDetail(containerId, data) {
-        const grid = document.getElementById(containerId);
-        const box = grid.parentElement;
-        const pretty = (v) => {
-            if (v === null || v === undefined) return "";
-            if (typeof v === "object") return JSON.stringify(v, null, 2);
-            return String(v);
-        };
-        const rows = Object.entries(data || {}).map(([k, v]) =>
-            `<div class="kv"><b>${k}</b><code>${pretty(v)}</code></div>`
-        );
-        grid.innerHTML = rows.join("");
-        box.style.display = "block";
+
+    function escapeHtml(v) {
+        return String(v)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
     }
+
     function numberOrNull(v) {
         if (!v) return null;
         const n = Number(v);
         return Number.isNaN(n) ? null : n;
     }
+
     async function req(url, method, body) {
         const res = await fetch(url, {
             method,
@@ -220,6 +251,41 @@
         if (!res.ok) throw data;
         return data;
     }
+
+    function switchPanel(name) {
+        document.getElementById("panel-open").classList.toggle("active", name === "open");
+        document.getElementById("panel-customer").classList.toggle("active", name === "customer");
+        document.getElementById("panel-account").classList.toggle("active", name === "account");
+        document.getElementById("menu-open").classList.toggle("active", name === "open");
+        document.getElementById("menu-customer").classList.toggle("active", name === "customer");
+        document.getElementById("menu-account").classList.toggle("active", name === "account");
+
+        if (name === "customer") {
+            searchCustomers();
+        } else if (name === "account") {
+            searchAccounts();
+        }
+    }
+
+    function panelFromQuery() {
+        const panel = new URLSearchParams(window.location.search).get("panel");
+        if (panel === "customer" || panel === "account" || panel === "open") {
+            switchPanel(panel);
+        }
+    }
+
+    function renderEmpty(tbodyId, colSpan, text) {
+        document.getElementById(tbodyId).innerHTML = `<tr><td class="empty" colspan="${colSpan}">${escapeHtml(text)}</td></tr>`;
+    }
+
+    function customerDetailUrl(customerNo) {
+        return `/admin-customer-detail.html?customerNo=${encodeURIComponent(customerNo)}`;
+    }
+
+    function accountDetailUrl(accountNo) {
+        return `/admin-account-detail.html?accountNo=${encodeURIComponent(accountNo)}`;
+    }
+
     async function createCustomer() {
         try {
             const data = await req("/admin/customers", "POST", {
@@ -228,9 +294,12 @@
                 mobile: cMobile.value.trim(),
                 idNo: cIdNo.value.trim()
             });
-            showOk("创建客户成功");
-        } catch (e) { showErr("创建客户失败", e); }
+            showOk("创建客户成功", data);
+        } catch (e) {
+            showErr("创建客户失败", e);
+        }
     }
+
     function accountPayload() {
         return {
             customerNo: aCustomerNo.value.trim(),
@@ -240,123 +309,96 @@
             interestRate: numberOrNull(aRate.value.trim())
         };
     }
+
     async function openDeposit() {
         try {
             const data = await req("/admin/accounts/deposit", "POST", accountPayload());
-            showOk("开存款账号成功");
-            renderDetail("accountDetailGrid", data);
-            switchPanel("account");
-        } catch (e) { showErr("开存款账号失败", e); }
+            showOk("开存款账号成功", data);
+        } catch (e) {
+            showErr("开存款账号失败", e);
+        }
     }
+
     async function openLoan() {
         try {
             const data = await req("/admin/accounts/loan", "POST", accountPayload());
-            showOk("开贷款账号成功");
-            renderDetail("accountDetailGrid", data);
-            switchPanel("account");
-        } catch (e) { showErr("开贷款账号失败", e); }
+            showOk("开贷款账号成功", data);
+        } catch (e) {
+            showErr("开贷款账号失败", e);
+        }
     }
-    async function queryCustomer() {
-        try {
-            const data = await req(`/admin/customers/${encodeURIComponent(qCustomerNo.value.trim())}`, "GET");
-            renderDetail("customerDetailGrid", data);
-            showOk("客户查询成功");
-        } catch (e) { showErr("客户查询失败", e); }
-    }
-    async function queryAccounts() {
-        try {
-            const data = await req(`/admin/customers/${encodeURIComponent(qCustomerNo.value.trim())}/accounts`, "GET");
-            renderAccountTable(data || []);
-            switchPanel("account");
-            showOk("客户账号列表已加载，可点击行查看详情");
-        } catch (e) { showErr("客户账号查询失败", e); }
-    }
+
     async function searchCustomers() {
         try {
             const params = new URLSearchParams({
-                customerNo: sCustomerNo2.value.trim(),
-                customerName: sCustomerName2.value.trim(),
-                mobile: sMobile2.value.trim(),
+                customerNo: sCustomerNo.value.trim(),
+                customerName: sCustomerName.value.trim(),
+                mobile: sMobile.value.trim(),
                 pageNo: sCustomerPageNo.value.trim() || "1",
                 pageSize: sCustomerPageSize.value.trim() || "20"
             });
             const data = await req(`/admin/customers?${params.toString()}`, "GET");
-            renderCustomerTable(data.records || []);
-            showOk("客户主表查询成功，可点击行查看详情");
-        } catch (e) { showErr("客户主表查询失败", e); }
-    }
-    function renderCustomerTable(records) {
-        currentCustomerRecords = records;
-        customerTableBody.innerHTML = records.map((r, idx) => `
-            <tr class="clickable" data-idx="${idx}" onclick='pickCustomerRow(this.dataset.idx)'>
-                <td>${r.customerNo || ""}</td>
-                <td>${r.customerName || ""}</td>
-                <td>${r.mobile || ""}</td>
-                <td>${r.idNo || ""}</td>
-                <td>${r.status || ""}</td>
-            </tr>
-        `).join("");
-        if (records.length > 0) {
-            renderDetail("customerDetailGrid", records[0]);
+            const records = Array.isArray(data.records) ? data.records : [];
+            document.getElementById("customerMeta").textContent = `共 ${data.total || 0} 条，当前第 ${data.pageNo || 1} 页，每页 ${data.pageSize || 20} 条`;
+            if (records.length === 0) {
+                renderEmpty("customerTableBody", 6, "暂无客户数据");
+                showOk("客户列表为空", data);
+                return;
+            }
+            document.getElementById("customerTableBody").innerHTML = records.map(r => `
+                <tr>
+                    <td>${escapeHtml(r.customerNo || "")}</td>
+                    <td>${escapeHtml(r.customerName || "")}</td>
+                    <td>${escapeHtml(r.mobile || "")}</td>
+                    <td>${escapeHtml(r.idNo || "")}</td>
+                    <td>${escapeHtml(r.status || "")}</td>
+                    <td><a class="op-btn" href="${customerDetailUrl(r.customerNo || "")}">查看详情</a></td>
+                </tr>
+            `).join("");
+            showOk("客户列表查询成功", data);
+        } catch (e) {
+            renderEmpty("customerTableBody", 6, "加载失败");
+            showErr("客户列表查询失败", e);
         }
     }
-    function pickCustomerRow(idx) {
-        const row = currentCustomerRecords[Number(idx)];
-        if (row) {
-            renderDetail("customerDetailGrid", row);
-        }
-    }
-    async function queryCustomerDetailFromTable() {
-        try {
-            const data = await req(`/admin/customers/${encodeURIComponent(dCustomerNo2.value.trim())}`, "GET");
-            renderDetail("customerDetailGrid", data);
-            showOk("客户详情查询成功");
-        } catch (e) { showErr("客户详情查询失败", e); }
-    }
+
     async function searchAccounts() {
         try {
             const params = new URLSearchParams({
-                customerNo: sCustomerNo.value.trim(),
+                customerNo: sAccountCustomerNo.value.trim(),
                 accountNo: sAccountNo.value.trim(),
                 accountType: sAccountType.value.trim(),
-                pageNo: sPageNo.value.trim() || "1",
-                pageSize: sPageSize.value.trim() || "20"
+                pageNo: sAccountPageNo.value.trim() || "1",
+                pageSize: sAccountPageSize.value.trim() || "20"
             });
             const data = await req(`/admin/accounts?${params.toString()}`, "GET");
-            renderAccountTable(data.records || []);
-            showOk("账号主表查询成功，可点击行查看详情");
-        } catch (e) { showErr("账号主表查询失败", e); }
-    }
-    function renderAccountTable(records) {
-        currentAccountRecords = records;
-        accountTableBody.innerHTML = records.map((r, idx) => `
-            <tr class="clickable" data-idx="${idx}" onclick='pickAccountRow(this.dataset.idx)'>
-                <td>${r.accountNo || ""}</td>
-                <td>${r.customerNo || ""}</td>
-                <td>${r.accountType || ""}</td>
-                <td>${r.currency || ""}</td>
-                <td>${r.availableBalance ?? ""}</td>
-                <td>${r.frozenBalance ?? ""}</td>
-                <td>${r.status || ""}</td>
-            </tr>
-        `).join("");
-        if (records.length > 0) {
-            renderDetail("accountDetailGrid", records[0]);
+            const records = Array.isArray(data.records) ? data.records : [];
+            document.getElementById("accountMeta").textContent = `共 ${data.total || 0} 条，当前第 ${data.pageNo || 1} 页，每页 ${data.pageSize || 20} 条`;
+            if (records.length === 0) {
+                renderEmpty("accountTableBody", 8, "暂无账号数据");
+                showOk("账号列表为空", data);
+                return;
+            }
+            document.getElementById("accountTableBody").innerHTML = records.map(r => `
+                <tr>
+                    <td>${escapeHtml(r.accountNo || "")}</td>
+                    <td>${escapeHtml(r.customerNo || "")}</td>
+                    <td>${escapeHtml(r.accountType || "")}</td>
+                    <td>${escapeHtml(r.currency || "")}</td>
+                    <td>${escapeHtml(r.availableBalance ?? "")}</td>
+                    <td>${escapeHtml(r.frozenBalance ?? "")}</td>
+                    <td>${escapeHtml(r.status || "")}</td>
+                    <td><a class="op-btn" href="${accountDetailUrl(r.accountNo || "")}">查看详情</a></td>
+                </tr>
+            `).join("");
+            showOk("账号列表查询成功", data);
+        } catch (e) {
+            renderEmpty("accountTableBody", 8, "加载失败");
+            showErr("账号列表查询失败", e);
         }
     }
-    function pickAccountRow(idx) {
-        const row = currentAccountRecords[Number(idx)];
-        if (row) {
-            renderDetail("accountDetailGrid", row);
-        }
-    }
-    async function queryAccountDetail() {
-        try {
-            const data = await req(`/admin/accounts/${encodeURIComponent(dAccountNo.value.trim())}`, "GET");
-            renderDetail("accountDetailGrid", data);
-            showOk("账号详情查询成功");
-        } catch (e) { showErr("账号详情查询失败", e); }
-    }
+
+    panelFromQuery();
 </script>
 </body>
 </html>

@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>客户详情</title>
+    <style>
+        :root { --bg:#f5f7fb; --card:#fff; --line:#d8e1ed; --text:#17212f; --muted:#6b7787; --primary:#0b69ff; --err:#c62828; }
+        * { box-sizing: border-box; }
+        body { margin:0; background:var(--bg); color:var(--text); font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
+        .wrap { max-width:960px; margin:20px auto; padding:0 12px; }
+        .nav { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+        .nav a { text-decoration:none; border:1px solid var(--line); border-radius:8px; padding:8px 12px; color:var(--text); background:#fff; }
+        .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px; }
+        h1 { margin:0 0 10px; font-size:20px; }
+        .meta { color:var(--muted); font-size:13px; margin-bottom:8px; }
+        .err { color:var(--err); }
+        .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
+        .kv { font-size:13px; }
+        .kv b { display:block; color:var(--muted); font-weight:500; margin-bottom:2px; }
+        pre { margin-top:12px; background:#0e1726; color:#cde3ff; border-radius:8px; padding:10px; overflow:auto; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="nav">
+        <a href="/admin-test.html?panel=customer">返回客户主表页</a>
+        <a href="/admin-test.html?panel=account">去账号主表页</a>
+        <a href="/admin-test.html?panel=open">去开户操作页</a>
+    </div>
+
+    <div class="card">
+        <h1>客户详情</h1>
+        <div id="meta" class="meta">加载中...</div>
+        <div id="detailGrid" class="grid"></div>
+        <pre id="raw"></pre>
+    </div>
+</div>
+
+<script>
+    const meta = document.getElementById("meta");
+    const raw = document.getElementById("raw");
+    const detailGrid = document.getElementById("detailGrid");
+
+    function escapeHtml(v) {
+        return String(v)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;")
+            .replaceAll('"', "&quot;")
+            .replaceAll("'", "&#39;");
+    }
+
+    function pretty(v) {
+        if (v === null || v === undefined) return "";
+        if (typeof v === "object") return JSON.stringify(v, null, 2);
+        return String(v);
+    }
+
+    function renderDetail(data) {
+        detailGrid.innerHTML = Object.entries(data || {}).map(([k, v]) =>
+            `<div class="kv"><b>${escapeHtml(k)}</b><code>${escapeHtml(pretty(v))}</code></div>`
+        ).join("");
+        raw.textContent = JSON.stringify(data || {}, null, 2);
+    }
+
+    async function main() {
+        const customerNo = new URLSearchParams(window.location.search).get("customerNo");
+        if (!customerNo) {
+            meta.innerHTML = `<span class="err">缺少 customerNo 参数</span>`;
+            return;
+        }
+        try {
+            const res = await fetch(`/admin/customers/${encodeURIComponent(customerNo)}`);
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw data;
+            meta.textContent = `customerNo: ${customerNo}`;
+            renderDetail(data);
+        } catch (e) {
+            meta.innerHTML = `<span class="err">加载客户详情失败</span>`;
+            raw.textContent = JSON.stringify(e || {}, null, 2);
+        }
+    }
+
+    main();
+</script>
+</body>
+</html>
