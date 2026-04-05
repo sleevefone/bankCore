@@ -25,12 +25,14 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
+@Slf4j
 @Service
 public class CoreTransactionApplicationService {
 
@@ -53,8 +55,13 @@ public class CoreTransactionApplicationService {
 
     @Transactional
     public CoreTransactionResponse create(CreateCoreTransactionRequest request) {
+        log.info("Received core transaction request: requestId={}, bizOrderId={}, txnType={}, customerNo={}, amount={}, currency={}, debitAccountNo={}, creditAccountNo={}",
+                request.getRequestId(), request.getBizOrderId(), request.getTxnType(), request.getCustomerNo(),
+                request.getAmount(), request.getCurrency(), request.getDebitAccountNo(), request.getCreditAccountNo());
         CoreTransaction existing = coreTransactionRepository.findByRequestId(request.getRequestId()).orElse(null);
         if (existing != null) {
+            log.info("Detected idempotent hit for core transaction request: requestId={}, existingCoreTxnId={}, status={}",
+                    request.getRequestId(), existing.getCoreTxnId(), existing.getStatus());
             return toResponse(existing, false, false, "IDEMPOTENT_HIT", "Request already accepted");
         }
 
@@ -77,30 +84,45 @@ public class CoreTransactionApplicationService {
         LocalDateTime now = LocalDateTime.now();
         CoreTransaction transaction = buildTransaction(request, now);
 
-        coreTransactionRepository.save(transaction);
-        ledgerEntryRepository.saveAll(List.of(
-                buildLedgerEntry(transaction, debitAccount, request, 1, DcDirection.DEBIT, debitAccount.getAvailableBalance(), debitBalanceAfter),
-                buildLedgerEntry(transaction, creditAccount, request, 2, DcDirection.CREDIT, creditAccount.getAvailableBalance(), creditBalanceAfter)
-        ));
-        accountRepository.updateAvailableBalance(debitAccount.getAccountNo(), debitBalanceAfter);
-        accountRepository.updateAvailableBalance(creditAccount.getAccountNo(), creditBalanceAfter);
-        auditLogRepository.save(buildAuditLog(request, transaction, debitBalanceAfter, creditBalanceAfter, now));
+        try {
+            coreTransactionRepository.save(transaction);
+            ledgerEntryRepository.saveAll(List.of(
+                    buildLedgerEntry(transaction, debitAccount, request, 1, DcDirection.DEBIT, debitAccount.getAvailableBalance(), debitBalanceAfter),
+                    buildLedgerEntry(transaction, creditAccount, request, 2, DcDirection.CREDIT, creditAccount.getAvailableBalance(), creditBalanceAfter)
+            ));
+            accountRepository.updateAvailableBalance(debitAccount.getAccountNo(), debitBalanceAfter);
+            accountRepository.updateAvailableBalance(creditAccount.getAccountNo(), creditBalanceAfter);
+            auditLogRepository.save(buildAuditLog(request, transaction, debitBalanceAfter, creditBalanceAfter, now));
+        } catch (RuntimeException ex) {
+            log.error("Failed to post core transaction: requestId={}, bizOrderId={}, coreTxnId={}, debitAccountNo={}, creditAccountNo={}",
+                    request.getRequestId(), request.getBizOrderId(), transaction.getCoreTxnId(),
+                    request.getDebitAccountNo(), request.getCreditAccountNo(), ex);
+            throw ex;
+        }
+        log.info("Posted core transaction successfully: requestId={}, bizOrderId={}, coreTxnId={}, debitBalanceAfter={}, creditBalanceAfter={}",
+                request.getRequestId(), request.getBizOrderId(), transaction.getCoreTxnId(), debitBalanceAfter, creditBalanceAfter);
         return toResponse(transaction, false, true, "POSTED", "Transaction posted successfully");
     }
 
     public CoreTransactionResponse getByBizOrderId(String bizOrderId) {
         CoreTransaction transaction = coreTransactionRepository.findByBizOrderId(bizOrderId).orElse(null);
         if (transaction == null) {
+            log.warn("Core transaction not found by bizOrderId: {}", bizOrderId);
             return null;
         }
+        log.info("Found core transaction by bizOrderId: bizOrderId={}, coreTxnId={}, status={}",
+                bizOrderId, transaction.getCoreTxnId(), transaction.getStatus());
         return toResponse(transaction, transaction.getStatus() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
     }
 
     public CoreTransactionResponse getByRequestId(String requestId) {
         CoreTransaction transaction = coreTransactionRepository.findByRequestId(requestId).orElse(null);
         if (transaction == null) {
+            log.warn("Core transaction not found by requestId: {}", requestId);
             return null;
         }
+        log.info("Found core transaction by requestId: requestId={}, coreTxnId={}, status={}",
+                requestId, transaction.getCoreTxnId(), transaction.getStatus());
         return toResponse(transaction, transaction.getStatus() != CoreTransactionStatus.SUCCESS, false, "FOUND", "Transaction found");
     }
 

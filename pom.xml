@@ -18,8 +18,9 @@
     <description>bank core system for payhub</description>
 
     <properties>
-        <java.version>21</java.version>
-        <lombok.version>1.18.36</lombok.version>
+        <java.version>23</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
     </properties>
 
     <dependencies>
@@ -81,6 +82,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <configuration>
                     <annotationProcessorPaths>
                         <path>

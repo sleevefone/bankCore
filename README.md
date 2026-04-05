@@ -17,6 +17,13 @@
 
 - [核心系统架构设计](./docs/architecture.zh-CN.md)
 
+本地开发约束：
+
+- 本项目统一使用 `JDK 21` 构建与运行
+- Maven 命令必须运行在 `Java 21` 下，否则会被 `maven-enforcer-plugin` 直接拦截
+- 如果本机同时装了多个 JDK，先执行 `export JAVA_HOME=$(/usr/libexec/java_home -v 21)` 再运行 `mvn clean package`
+- IDEA 需要同时把 `Project SDK` 和 `Maven Runner JRE` 都切到 `JDK 21`
+
 建议的系统边界：
 
 - `pay-hello` 负责支付订单编排、渠道交互、回调处理、支付状态汇总
