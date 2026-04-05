@@ -88,6 +88,37 @@
 - 账号列表：`GET /admin/accounts`
 - 账号详情：`GET /admin/accounts/{accountNo}`
 
+## 5.1 账号生成规则（新增）
+
+- 适用范围：后管“开户操作页”创建账号时生成 `accountNo` 与 `accountSeqNo`。
+- 当前实现状态：已落地为“纯数字账号（无横线）+ 校验位”。
+
+### accountNo 规则（当前）
+
+- 结构：`BBBBTYYYYMMDDSSSSSSSSC`
+- 说明：
+  - `BBBB`：机构码（当前固定 `8801`）
+  - `T`：账号类型位（`1`=存款，`2`=贷款，`9`=其他）
+  - `YYYYMMDD`：开户日期
+  - `SSSSSSSS`：8 位随机流水
+  - `C`：Luhn 校验位
+- 示例（示意）：`8801120260405123456783`
+
+### accountSeqNo 规则（当前）
+
+- 结构：`当前毫秒 * 1000 + 3 位随机数`
+- 用途：核心交易入账校验与审计追踪（与 `accountNo` 并行使用）。
+
+### 数据库唯一性约束
+
+- `core_account.account_no`：唯一
+- `core_account.account_seq_no`：唯一
+
+### 说明
+
+- 该规则属于当前项目内部规则，并非监管统一模板。
+- 若后续接入外部系统，可在保持唯一性的前提下替换 `BBBB/T/SSSSSSSS` 编排策略。
+
 ## 6. 验收标准（DoD）
 
 1. [通过] 点击“客户主表”标签，能查询并展示列表或空态。  

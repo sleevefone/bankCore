@@ -15,6 +15,7 @@ import com.payhub.bankcore.infrastructure.persistence.repository.AccountReposito
 import com.payhub.bankcore.infrastructure.persistence.repository.CoreCustomerRepository;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,8 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 
 @Service
 public class AdminManagementService {
+    private static final String BANK_CODE = "8801";
+    private static final DateTimeFormatter ACCOUNT_DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final CoreCustomerRepository coreCustomerRepository;
     private final AccountRepository accountRepository;
@@ -144,9 +147,33 @@ public class AdminManagementService {
     }
 
     private String generateAccountNo(String prefix) {
-        long millis = System.currentTimeMillis();
-        int suffix = ThreadLocalRandom.current().nextInt(1000, 9999);
-        return prefix + "ACC-" + millis + suffix;
+        String typeCode = switch (prefix) {
+            case "D" -> "1";
+            case "L" -> "2";
+            default -> "9";
+        };
+        String datePart = LocalDateTime.now().format(ACCOUNT_DATE_FORMATTER);
+        String serialPart = String.format("%08d", ThreadLocalRandom.current().nextInt(0, 100_000_000));
+        String base = BANK_CODE + typeCode + datePart + serialPart;
+        int checkDigit = luhnCheckDigit(base);
+        return base + checkDigit;
+    }
+
+    private int luhnCheckDigit(String base) {
+        int sum = 0;
+        boolean doubleDigit = true;
+        for (int i = base.length() - 1; i >= 0; i--) {
+            int digit = base.charAt(i) - '0';
+            if (doubleDigit) {
+                digit = digit * 2;
+                if (digit > 9) {
+                    digit -= 9;
+                }
+            }
+            sum += digit;
+            doubleDigit = !doubleDigit;
+        }
+        return (10 - (sum % 10)) % 10;
     }
 
     private long generateAccountSeqNo() {
