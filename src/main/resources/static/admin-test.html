@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Bank Core Admin Test</title>
+    <style>
+        :root { --bg:#f5f7fb; --card:#fff; --line:#d9e1ec; --text:#1b2430; --muted:#6b7787; --primary:#0b69ff; --ok:#14804a; --err:#c62828; }
+        body { margin:0; background:var(--bg); color:var(--text); font-family:"PingFang SC","Microsoft YaHei",sans-serif; }
+        .wrap { max-width:1100px; margin:24px auto; padding:0 16px; }
+        .menu { display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap; }
+        .menu button { background:#fff; color:var(--text); border:1px solid var(--line); }
+        .menu button.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+        .panel { display:none; }
+        .panel.active { display:block; }
+        .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+        h1 { margin:0 0 12px; font-size:22px; }
+        h2 { margin:0 0 12px; font-size:18px; }
+        .row { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+        input, select, button { padding:8px 10px; border:1px solid var(--line); border-radius:8px; font-size:14px; }
+        input, select { min-width:180px; background:#fff; }
+        button { background:var(--primary); color:#fff; cursor:pointer; border:none; }
+        pre { background:#0e1726; color:#cde3ff; padding:12px; border-radius:8px; overflow:auto; min-height:80px; }
+        .tips { color:var(--muted); font-size:13px; margin-bottom:8px; }
+        .ok { color:var(--ok); }
+        .err { color:var(--err); }
+        table { width:100%; border-collapse:collapse; }
+        th, td { border-bottom:1px solid var(--line); text-align:left; padding:8px; font-size:13px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <h1>核心后管测试页</h1>
+    <div class="menu">
+        <button id="menu-open" class="active" onclick="switchPanel('open')">开户操作</button>
+        <button id="menu-account" onclick="switchPanel('account')">账号主表</button>
+    </div>
+
+    <div id="panel-open" class="panel active">
+    <div class="card">
+        <h2>1) 开客户</h2>
+        <div class="tips">先建客户，再开账户。`customerNo` 建议用 `CUST-xxxx`。</div>
+        <div class="row">
+            <input id="cNo" placeholder="customerNo">
+            <input id="cName" placeholder="customerName">
+            <input id="cMobile" placeholder="mobile">
+            <input id="cIdNo" placeholder="idNo">
+            <button onclick="createCustomer()">创建客户</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>2) 开存款账号 / 贷款账号</h2>
+        <div class="row">
+            <input id="aCustomerNo" placeholder="customerNo">
+            <input id="aCurrency" value="CNY" placeholder="currency">
+            <input id="aSubjectCode" placeholder="subjectCode (如 201001/130101)">
+            <select id="aDirection">
+                <option value="DEBIT">DEBIT</option>
+                <option value="CREDIT">CREDIT</option>
+            </select>
+            <input id="aRate" placeholder="interestRate (可空)">
+            <button onclick="openDeposit()">开存款账号</button>
+            <button onclick="openLoan()">开贷款账号</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>3) 客户与账号查询</h2>
+        <div class="row">
+            <input id="qCustomerNo" placeholder="customerNo">
+            <button onclick="queryCustomer()">查客户</button>
+            <button onclick="queryAccounts()">查客户账号</button>
+        </div>
+    </div>
+    </div>
+
+    <div id="panel-account" class="panel">
+        <div class="card">
+            <h2>账号主表查询</h2>
+            <div class="row">
+                <input id="sCustomerNo" placeholder="customerNo">
+                <input id="sAccountNo" placeholder="accountNo">
+                <select id="sAccountType">
+                    <option value="">全部账户类型</option>
+                    <option value="DEPOSIT">DEPOSIT</option>
+                    <option value="LOAN">LOAN</option>
+                    <option value="CUSTOMER">CUSTOMER</option>
+                    <option value="MERCHANT">MERCHANT</option>
+                    <option value="INTERNAL">INTERNAL</option>
+                    <option value="CLEARING">CLEARING</option>
+                </select>
+                <input id="sPageNo" value="1" placeholder="pageNo">
+                <input id="sPageSize" value="20" placeholder="pageSize">
+                <button onclick="searchAccounts()">查询主表</button>
+            </div>
+            <div class="row">
+                <input id="dAccountNo" placeholder="accountNo">
+                <button onclick="queryAccountDetail()">查账号详情</button>
+            </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>accountNo</th>
+                    <th>customerNo</th>
+                    <th>type</th>
+                    <th>currency</th>
+                    <th>avail</th>
+                    <th>frozen</th>
+                    <th>status</th>
+                </tr>
+                </thead>
+                <tbody id="accountTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>结果</h2>
+        <pre id="out"></pre>
+    </div>
+</div>
+<script>
+    const out = document.getElementById("out");
+    function switchPanel(name) {
+        document.getElementById("panel-open").classList.toggle("active", name === "open");
+        document.getElementById("panel-account").classList.toggle("active", name === "account");
+        document.getElementById("menu-open").classList.toggle("active", name === "open");
+        document.getElementById("menu-account").classList.toggle("active", name === "account");
+    }
+    function show(title, data, ok = true) {
+        out.innerHTML = `<span class="${ok ? "ok" : "err"}">${title}</span>\n` + JSON.stringify(data, null, 2);
+    }
+    function numberOrNull(v) {
+        if (!v) return null;
+        const n = Number(v);
+        return Number.isNaN(n) ? null : n;
+    }
+    async function req(url, method, body) {
+        const res = await fetch(url, {
+            method,
+            headers: { "Content-Type": "application/json" },
+            body: body ? JSON.stringify(body) : undefined
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw data;
+        return data;
+    }
+    async function createCustomer() {
+        try {
+            const data = await req("/admin/customers", "POST", {
+                customerNo: cNo.value.trim(),
+                customerName: cName.value.trim(),
+                mobile: cMobile.value.trim(),
+                idNo: cIdNo.value.trim()
+            });
+            show("创建客户成功", data, true);
+        } catch (e) { show("创建客户失败", e, false); }
+    }
+    function accountPayload() {
+        return {
+            customerNo: aCustomerNo.value.trim(),
+            currency: aCurrency.value.trim(),
+            subjectCode: aSubjectCode.value.trim(),
+            normalBalanceDirection: aDirection.value,
+            interestRate: numberOrNull(aRate.value.trim())
+        };
+    }
+    async function openDeposit() {
+        try {
+            const data = await req("/admin/accounts/deposit", "POST", accountPayload());
+            show("开存款账号成功", data, true);
+        } catch (e) { show("开存款账号失败", e, false); }
+    }
+    async function openLoan() {
+        try {
+            const data = await req("/admin/accounts/loan", "POST", accountPayload());
+            show("开贷款账号成功", data, true);
+        } catch (e) { show("开贷款账号失败", e, false); }
+    }
+    async function queryCustomer() {
+        try {
+            const data = await req(`/admin/customers/${encodeURIComponent(qCustomerNo.value.trim())}`, "GET");
+            show("客户查询成功", data, true);
+        } catch (e) { show("客户查询失败", e, false); }
+    }
+    async function queryAccounts() {
+        try {
+            const data = await req(`/admin/customers/${encodeURIComponent(qCustomerNo.value.trim())}/accounts`, "GET");
+            show("客户账号查询成功", data, true);
+        } catch (e) { show("客户账号查询失败", e, false); }
+    }
+    async function searchAccounts() {
+        try {
+            const params = new URLSearchParams({
+                customerNo: sCustomerNo.value.trim(),
+                accountNo: sAccountNo.value.trim(),
+                accountType: sAccountType.value.trim(),
+                pageNo: sPageNo.value.trim() || "1",
+                pageSize: sPageSize.value.trim() || "20"
+            });
+            const data = await req(`/admin/accounts?${params.toString()}`, "GET");
+            renderAccountTable(data.records || []);
+            show("账号主表查询成功", data, true);
+        } catch (e) { show("账号主表查询失败", e, false); }
+    }
+    function renderAccountTable(records) {
+        accountTableBody.innerHTML = records.map(r => `
+            <tr>
+                <td>${r.accountNo || ""}</td>
+                <td>${r.customerNo || ""}</td>
+                <td>${r.accountType || ""}</td>
+                <td>${r.currency || ""}</td>
+                <td>${r.availableBalance ?? ""}</td>
+                <td>${r.frozenBalance ?? ""}</td>
+                <td>${r.status || ""}</td>
+            </tr>
+        `).join("");
+    }
+    async function queryAccountDetail() {
+        try {
+            const data = await req(`/admin/accounts/${encodeURIComponent(dAccountNo.value.trim())}`, "GET");
+            show("账号详情查询成功", data, true);
+        } catch (e) { show("账号详情查询失败", e, false); }
+    }
+</script>
+</body>
+</html>

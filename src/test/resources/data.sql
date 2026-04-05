@@ -3,6 +3,13 @@ DELETE FROM core_transaction_history;
 DELETE FROM core_ledger_entry;
 DELETE FROM core_transaction;
 DELETE FROM core_account;
+DELETE FROM core_customer;
+
+INSERT INTO core_customer (
+    customer_no, customer_name, mobile, id_no, status, created_at, updated_at
+) VALUES
+    ('CUST-1001', 'Test Customer A', '13800000001', 'ID1001', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('CUST-2001', 'Test Customer B', '13800000002', 'ID2001', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 INSERT INTO core_account (
     account_no, account_seq_no, customer_no, account_type, subject_code, normal_balance_direction,

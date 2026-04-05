@@ -10,6 +10,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.server.ResponseStatusException;
 
 @Slf4j
@@ -42,6 +43,23 @@ public class ApiExceptionHandler {
                 "code", ex.getStatusCode().toString(),
                 "message", ex.getReason()
         ));
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Void> handleNoResource(NoResourceFoundException ex) {
+        String resourcePath = ex.getResourcePath();
+        if (resourcePath != null && (
+                resourcePath.equals("favicon.ico")
+                        || resourcePath.startsWith(".well-known/")
+                        || resourcePath.startsWith("apple-touch-icon")
+                        || resourcePath.startsWith("browserconfig")
+                        || resourcePath.startsWith("site.webmanifest")
+        )) {
+            log.debug("Ignore browser probe static resource: {}", resourcePath);
+            return ResponseEntity.noContent().build();
+        }
+        log.warn("Static resource not found: {}", resourcePath);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
     }
 
     @ExceptionHandler(Exception.class)
